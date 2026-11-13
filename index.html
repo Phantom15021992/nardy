@@ -1,0 +1,977 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Нарды</title>
+<style>
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;height:100%}
+body{
+  background:radial-gradient(ellipse at 50% 25%,#4a2e19 0%,#24140a 60%,#110803 100%);
+  color:#f3e3c3;font-family:Georgia,"Times New Roman",serif;
+  display:flex;flex-direction:column;min-height:100vh;overflow-x:hidden;
+}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 16px;flex-wrap:wrap}
+.brand{font-size:26px;letter-spacing:1px;color:#f0d9a8;text-shadow:0 2px 0 #000;white-space:nowrap}
+.brand small{font-size:14px;color:#c9a979;margin-left:8px;letter-spacing:0}
+.score{font-size:17px;background:rgba(0,0,0,.3);padding:6px 14px;border-radius:20px;border:1px solid #6b4a2a;white-space:nowrap}
+.score b{color:#ffd34d}
+.actions{display:flex;gap:8px}
+button{
+  font-family:inherit;font-size:15px;color:#fbefd5;background:linear-gradient(#a06a35,#6b3e1b);
+  border:1px solid #2e1a0b;border-radius:8px;padding:8px 14px;cursor:pointer;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 2px 4px rgba(0,0,0,.5);transition:filter .15s,transform .05s;
+}
+button:hover{filter:brightness(1.12)}
+button:active{transform:translateY(1px)}
+button:disabled{opacity:.4;cursor:default;filter:none;transform:none}
+button.primary{background:linear-gradient(#e8bb55,#a8771f);color:#2a1606;font-weight:bold}
+main{flex:1;display:flex;align-items:center;justify-content:center;padding:0 10px;min-height:0}
+.board-wrap{position:relative;width:min(100%,calc((100vh - 140px) * 1.5));aspect-ratio:1080/720;margin:auto}
+.board-wrap svg{position:absolute;inset:0;width:100%;height:100%;display:block;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+#dyn{will-change:transform}
+.controls{display:flex;align-items:center;justify-content:center;gap:12px;padding:8px 16px 14px;flex-wrap:wrap}
+.status-box{min-width:280px;text-align:center}
+#status{font-size:17px;color:#f6e4bd}
+#pips{font-size:13px;color:#bfa27a;margin-top:2px;min-height:16px}
+.dot{display:inline-block;width:13px;height:13px;border-radius:50%;margin-right:8px;vertical-align:-1px;border:1px solid #000}
+.dot.w{background:radial-gradient(circle at 40% 35%,#fffdf6,#cdb98f)}
+.dot.b{background:radial-gradient(circle at 40% 35%,#6a4a3a,#140904)}
+.btns{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+
+.overlay{position:fixed;inset:0;background:rgba(10,5,2,.72);display:none;align-items:center;justify-content:center;z-index:10;padding:16px}
+.overlay.show{display:flex}
+.modal{
+  background:linear-gradient(#f7ecd2,#e8d4aa);color:#3b2412;border-radius:14px;border:3px solid #6b4020;
+  box-shadow:0 20px 60px rgba(0,0,0,.6);padding:22px 26px;width:min(480px,100%);max-height:92vh;overflow:auto;
+}
+.modal h2{margin:0 0 14px;text-align:center;font-size:28px;letter-spacing:1px}
+.modal h3{margin:16px 0 6px;font-size:18px}
+.modal p,.modal li{font-size:15px;line-height:1.45}
+.modal ul{padding-left:20px;margin:6px 0}
+.opt{margin:14px 0}
+.opt .label{font-weight:bold;margin-bottom:6px}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button{flex:1;min-width:90px;background:linear-gradient(#f1e3c2,#d7bf8e);color:#3b2412;box-shadow:none;border:1px solid #a07c48}
+.seg button.on{background:linear-gradient(#a06a35,#6b3e1b);color:#fff;border-color:#3a210c}
+.chk{display:flex;align-items:center;gap:10px;margin:9px 0;font-size:15px;cursor:pointer}
+.chk input{width:18px;height:18px;accent-color:#7a4520}
+.mbtns{display:flex;flex-direction:column;gap:8px;margin-top:18px}
+.mbtns button{font-size:17px;padding:10px}
+.row{display:flex;gap:8px;margin-top:18px}
+.row button{flex:1}
+table{width:100%;border-collapse:collapse;font-size:15px}
+td,th{padding:6px 8px;border-bottom:1px solid rgba(90,50,20,.25);text-align:center}
+td:first-child,th:first-child{text-align:left}
+.big{font-size:22px;text-align:center;margin:6px 0 4px}
+.sub{text-align:center;color:#6b4a2a;margin-bottom:6px}
+
+.pulse{animation:pulse 1.1s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.shake{animation:shake .14s linear infinite;transform-box:fill-box;transform-origin:center}
+@keyframes shake{0%{transform:rotate(-12deg)}50%{transform:rotate(12deg)}100%{transform:rotate(-12deg)}}
+.cnt{font:bold 22px Georgia,serif;pointer-events:none}
+.cnt.l{fill:#5a3a18}.cnt.d{fill:#f2dfba}
+.lbl{font:13px Georgia,serif;fill:#d9b98a;opacity:.75}
+@media (max-width:600px){
+  .brand{font-size:21px}.score{font-size:15px}
+  button{font-size:14px;padding:7px 11px}
+  .board-wrap{width:100%}
+  .modal{padding:18px}
+}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">Нарды<small id="variantLabel"></small></div>
+  <div class="score" id="score"></div>
+  <div class="actions">
+    <button id="btnMenu">Меню</button>
+    <button id="btnSettings" title="Настройки">⚙ Настройки</button>
+  </div>
+</header>
+
+<main>
+  <div class="board-wrap">
+    <svg id="static" viewBox="-80 0 1080 720" aria-hidden="true"></svg>
+    <svg id="dyn" viewBox="-80 0 1080 720"><g id="layer"></g><g id="float" style="pointer-events:none"></g></svg>
+  </div>
+</main>
+
+<footer class="controls">
+  <div class="status-box">
+    <div><span id="turnDot" class="dot w"></span><span id="status">Добро пожаловать!</span></div>
+    <div id="pips"></div>
+  </div>
+  <div class="btns">
+    <button id="btnUndo" disabled>↶ Отменить</button>
+    <button id="btnRoll" class="primary" hidden>🎲 Бросить кубики</button>
+    <button id="btnDone" class="primary" hidden>✓ Завершить ход</button>
+  </div>
+</footer>
+
+<!-- Главное меню -->
+<div class="overlay show" id="ovMenu">
+  <div class="modal">
+    <h2>Нарды</h2>
+    <div class="opt"><div class="label">Вариант игры</div>
+      <div class="seg" data-obj="prefs" data-key="variant">
+        <button data-v="long">Длинные</button><button data-v="short">Короткие</button>
+      </div>
+    </div>
+    <div class="opt"><div class="label">Сложность компьютера</div>
+      <div class="seg" data-obj="prefs" data-key="difficulty">
+        <button data-v="easy">Лёгкий</button><button data-v="medium">Средний</button><button data-v="hard">Сложный</button>
+      </div>
+    </div>
+    <div class="mbtns">
+      <button class="primary" id="mNew">Новая партия</button>
+      <button id="mContinue" hidden>Продолжить партию</button>
+      <button id="mSettings">Настройки</button>
+      <button id="mStats">Статистика</button>
+      <button id="mRules">Правила и управление</button>
+    </div>
+  </div>
+</div>
+
+<!-- Настройки -->
+<div class="overlay" id="ovSettings">
+  <div class="modal">
+    <h2>Настройка</h2>
+    <div class="opt"><div class="label">Бросок кубиков</div>
+      <div class="seg" data-obj="settings" data-key="rollMode">
+        <button data-v="manual">Кнопкой</button><button data-v="auto">Автоматически</button>
+      </div>
+    </div>
+    <div class="opt"><div class="label">Скорость анимации</div>
+      <div class="seg" data-obj="settings" data-key="speed">
+        <button data-v="slow">Медленно</button><button data-v="normal">Обычно</button><button data-v="fast">Быстро</button><button data-v="off">Без анимации</button>
+      </div>
+    </div>
+    <label class="chk"><input type="checkbox" data-key="hints"> Подсвечивать возможные ходы</label>
+    <label class="chk"><input type="checkbox" data-key="confirmMove"> Подтверждать конец хода (можно отменить ход)</label>
+    <label class="chk"><input type="checkbox" data-key="sound"> Звук</label>
+    <label class="chk"><input type="checkbox" data-key="numbers"> Нумерация пунктов</label>
+    <label class="chk"><input type="checkbox" data-key="pips"> Показывать счёт пипсов</label>
+    <div class="row"><button class="primary" data-close>Готово</button></div>
+  </div>
+</div>
+
+<!-- Статистика -->
+<div class="overlay" id="ovStats">
+  <div class="modal">
+    <h2>Статистика</h2>
+    <div id="statsBody"></div>
+    <div class="row"><button id="statsReset">Сбросить</button><button class="primary" data-close>Закрыть</button></div>
+  </div>
+</div>
+
+<!-- Правила -->
+<div class="overlay" id="ovRules">
+  <div class="modal">
+    <h2>Правила</h2>
+    <h3>Общее</h3>
+    <ul>
+      <li>Вы играете белыми, компьютер — тёмными. Кто ходит первым, решает бросок по одному кубику.</li>
+      <li>Шашка ходит на число очков каждого кубика отдельно. Дубль — ходите четыре раза.</li>
+      <li>Нужно использовать оба кубика, если это возможно. Если можно сыграть только один — обязательно больший.</li>
+      <li>Когда все 15 шашек в доме (правая нижняя четверть), их можно выбрасывать. Больший кубик снимает шашку с дальнего пункта, если выше неё пусто.</li>
+    </ul>
+    <h3>Длинные нарды</h3>
+    <ul>
+      <li>Все шашки стартуют с «головы»: ваша — правый верхний пункт, у соперника — левый нижний. Оба ходят против часовой стрелки.</li>
+      <li>Бить нельзя: на пункт с шашкой соперника вставать запрещено.</li>
+      <li>С головы за ход можно снять одну шашку. Исключение — первый ход с дублем 6-6, 4-4 или 3-3: можно две.</li>
+      <li>Нельзя строить заграждение из 6 пунктов подряд, если впереди него нет ни одной шашки соперника.</li>
+      <li>Очки: победа — 1, марс (соперник не выбросил ни одной шашки) — 2.</li>
+    </ul>
+    <h3>Короткие нарды</h3>
+    <ul>
+      <li>Шашки расставлены по доске, вы и соперник идёте навстречу друг другу.</li>
+      <li>Одиночную шашку соперника можно побить — она уходит на бар и должна снова войти в игру через ваш стартовый угол. Пока есть шашки на баре, другие ходить не могут.</li>
+      <li>Нельзя вставать на пункт, где две и более шашки соперника.</li>
+      <li>Очки: победа — 1, марс — 2, кокс (у проигравшего шашка на баре или в вашем доме) — 3.</li>
+    </ul>
+    <h3>Управление</h3>
+    <ul>
+      <li>Нажмите на шашку — подсветятся пункты, куда можно пойти. Нажмите на пункт, чтобы сходить. Можно сразу ходить на сумму кубиков.</li>
+      <li>Для выброса нажмите на шашку, затем на лоток справа.</li>
+      <li>Пробел — бросить кубики / завершить ход, Ctrl+Z — отменить ход, Esc — снять выбор.</li>
+    </ul>
+    <div class="row"><button class="primary" data-close>Понятно</button></div>
+  </div>
+</div>
+
+<!-- Конец партии -->
+<div class="overlay" id="ovOver">
+  <div class="modal">
+    <h2 id="overTitle">Победа!</h2>
+    <div class="big" id="overKind"></div>
+    <div class="sub" id="overScore"></div>
+    <div class="row"><button id="overMenu">В меню</button><button class="primary" id="overNew">Ещё партию</button></div>
+  </div>
+</div>
+
+<script>
+(()=>{
+'use strict';
+const $=id=>document.getElementById(id);
+
+/* ================= Хранилище ================= */
+const LS={
+  get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+};
+const DEF_SETTINGS={rollMode:'manual',confirmMove:true,sound:true,speed:'normal',hints:true,numbers:true,pips:true};
+const settings=Object.assign({},DEF_SETTINGS,LS.get('nardy.settings',{}));
+const prefs=Object.assign({variant:'long',difficulty:'medium'},LS.get('nardy.prefs',{}));
+const emptyStat=()=>({games:0,wins:0,losses:0,ptsFor:0,ptsAgainst:0,marsFor:0,marsAgainst:0,koksFor:0,koksAgainst:0});
+let stats=LS.get('nardy.stats',null);
+if(!stats||!stats.long||!stats.short) stats={long:emptyStat(),short:emptyStat()};
+const session={me:0,ai:0};
+const DIFF_NAMES={easy:'лёгкий',medium:'средний',hard:'сложный'};
+
+/* ================= Движок правил ================= */
+// Абсолютные пункты 0..23. b[a] > 0 — белые (игрок 0), b[a] < 0 — тёмные (игрок 1).
+// У каждого игрока свой путь: относительный индекс 0..23 (0 — старт/голова, 18..23 — дом).
+let V='long';
+const R2A={long:[[],[]],short:[[],[]]},A2R={long:[[],[]],short:[[],[]]};
+for(let i=0;i<24;i++){
+  R2A.long[0][i]=23-i;  R2A.long[1][i]=(35-i)%24;
+  R2A.short[0][i]=23-i; R2A.short[1][i]=i;
+}
+for(const v of ['long','short'])for(const p of [0,1])for(let i=0;i<24;i++)A2R[v][p][R2A[v][p][i]]=i;
+
+function newState(variant){
+  const s={b:new Array(24).fill(0),bar:[0,0],off:[0,0]};
+  const put=(p,rel,n)=>{const a=R2A[variant][p][rel];s.b[a]+=p===0?n:-n;};
+  if(variant==='long'){put(0,0,15);put(1,0,15);}
+  else for(const p of [0,1]){put(p,0,2);put(p,11,5);put(p,16,3);put(p,18,5);}
+  return s;
+}
+const cl=s=>({b:s.b.slice(),bar:s.bar.slice(),off:s.off.slice()});
+const own=(s,a,p)=>p===0?(s.b[a]>0?s.b[a]:0):(s.b[a]<0?-s.b[a]:0);
+const skey=s=>s.b.join(',')+'|'+s.bar[0]+','+s.bar[1]+'|'+s.off[0]+','+s.off[1];
+const uniq=a=>[...new Set(a)];
+function removeOne(rem,d){const i=rem.indexOf(d);const n=rem.slice();n.splice(i,1);return n;}
+
+function allHome(s,p){
+  if(s.bar[p])return false;
+  let n=s.off[p];const r=R2A[V][p];
+  for(let i=18;i<24;i++)n+=own(s,r[i],p);
+  return n===15;
+}
+function applyMove(s,p,m){
+  const n=cl(s),r=R2A[V][p],sg=p===0?1:-1;
+  if(m.from<0)n.bar[p]--;else n.b[r[m.from]]-=sg;
+  if(m.to>=24)n.off[p]++;
+  else{const a=r[m.to];if(m.hit){n.b[a]=0;n.bar[1-p]++;}n.b[a]+=sg;}
+  return n;
+}
+// Длинные: запрещён блок из 6 пунктов подряд на пути соперника, если впереди блока нет его шашек
+function blockIllegal(s,p){
+  const q=1-p,rq=R2A[V][q];let run=0;
+  for(let j=0;j<24;j++){
+    if(own(s,rq[j],p)>0){
+      run++;
+      if(run>=6){
+        let ahead=false;
+        for(let k=j+1;k<24;k++)if(own(s,rq[k],q)>0){ahead=true;break;}
+        if(!ahead)return true;
+      }
+    }else run=0;
+  }
+  return false;
+}
+// Все одиночные ходы на кубик die. head — сколько шашек уже снято с головы, hl — лимит.
+function genSingle(s,p,die,head,hl){
+  const res=[],r=R2A[V][p],q=1-p,long=V==='long';
+  if(!long&&s.bar[p]>0){
+    const t=die-1,a=r[t],oc=own(s,a,q);
+    if(oc<=1)res.push({from:-1,to:t,die,hit:oc===1});
+    return res;
+  }
+  const home=allHome(s,p);
+  let farthest=-1;
+  if(home)for(let i=18;i<24;i++)if(own(s,r[i],p)>0){farthest=i;break;}
+  for(let i=0;i<24;i++){
+    if(own(s,r[i],p)===0)continue;
+    if(long&&i===0&&head>=hl)continue;
+    const t=i+die;
+    if(t<24){
+      const a=r[t],oc=own(s,a,q);
+      if(long){
+        if(oc>0)continue;
+        const m={from:i,to:t,die,hit:false};
+        if(blockIllegal(applyMove(s,p,m),p))continue;
+        res.push(m);
+      }else{
+        if(oc>=2)continue;
+        res.push({from:i,to:t,die,hit:oc===1});
+      }
+    }else if(home){
+      if(t===24||i===farthest)res.push({from:i,to:24,die,hit:false});
+    }
+  }
+  return res;
+}
+const headInc=m=>(V==='long'&&m.from===0)?1:0;
+function maxDepth(s,p,rem,head,hl,memo){
+  if(!rem.length)return 0;
+  const k=skey(s)+'#'+rem.join('')+'#'+head;
+  const c=memo.get(k);if(c!==undefined)return c;
+  let best=0;
+  outer:for(const d of uniq(rem)){
+    for(const m of genSingle(s,p,d,head,hl)){
+      const v=1+maxDepth(applyMove(s,p,m),p,removeOne(rem,d),head+headInc(m),hl,memo);
+      if(v>best){best=v;if(best===rem.length)break outer;}
+    }
+  }
+  memo.set(k,best);return best;
+}
+// Допустимые следующие шаги: только те, что ведут к максимальному использованию кубиков
+function legalSteps(c){
+  const memo=new Map();
+  const md=maxDepth(c.s,c.p,c.rem,c.head,c.hl,memo);
+  if(md===0)return[];
+  const out=[];
+  for(const d of uniq(c.rem)){
+    if(c.forceHigh&&d!==c.forceHigh)continue;
+    for(const m of genSingle(c.s,c.p,d,c.head,c.hl)){
+      const v=1+maxDepth(applyMove(c.s,c.p,m),c.p,removeOne(c.rem,d),c.head+headInc(m),c.hl,memo);
+      if(v===md)out.push(m);
+    }
+  }
+  return out;
+}
+// Все различные итоговые позиции хода (для ИИ)
+function enumLeaves(s,p,rem,hl){
+  const out=new Map();let maxLen=0;const seen=new Set();
+  const isDouble=rem.length===4||(rem.length===2&&rem[0]===rem[1]);
+  (function rec(st,r,hd,path){
+    const k=skey(st)+'#'+r.join('')+'#'+hd;
+    if(seen.has(k))return;seen.add(k);
+    let any=false;
+    for(const d of uniq(r))for(const m of genSingle(st,p,d,hd,hl)){
+      any=true;rec(applyMove(st,p,m),removeOne(r,d),hd+headInc(m),path.concat([m]));
+    }
+    if(!any){
+      const L=path.length;
+      if(L>maxLen){maxLen=L;out.clear();}
+      if(L===maxLen){const kk=skey(st);if(!out.has(kk))out.set(kk,{path,s:st});}
+    }
+  })(s,rem,0,[]);
+  if(maxLen===0)return[];
+  let res=[...out.values()];
+  if(maxLen===1&&!isDouble&&rem.length===2){
+    const hi=Math.max(rem[0],rem[1]);
+    const h=res.filter(x=>x.path[0].die===hi);if(h.length)res=h;
+  }
+  return res;
+}
+function relArr(s,p){const r=R2A[V][p],A=new Array(24);for(let i=0;i<24;i++)A[i]=own(s,r[i],p);return A;}
+function pipOf(s,p){const A=relArr(s,p);let t=s.bar[p]*25;for(let i=0;i<24;i++)t+=A[i]*(24-i);return t;}
+
+/* ================= ИИ ================= */
+const SHOTS=[0,11,12,14,15,15,17,6,6,5,3,2,3,0,0,1,1,0,1,0,1,0,0,0,1];
+const PV_SHORT=(()=>{const a=new Array(24).fill(1);
+  a[0]=1.5;a[1]=1.5;a[2]=2;a[3]=3.5;a[4]=4;a[5]=3;a[15]=2;a[16]=3;a[17]=5;
+  a[18]=6;a[19]=8;a[20]=7;a[21]=4.5;a[22]=2.5;a[23]=1;return a;})();
+const PRIME=[0,0,1,3,6,10,16];
+function sideShort(s,me,M,O,riskW){
+  const opp=1-me;let v=0,run=0,bestRun=0,closedHome=0;
+  const shooters=[];for(let j=0;j<24;j++)if(O[j])shooters.push(23-j);if(s.bar[opp])shooters.push(24);
+  for(let i=0;i<24;i++){
+    const c=M[i];
+    if(c>=2){v+=PV_SHORT[i];run++;if(run>bestRun)bestRun=run;if(i>=18)closedHome++;if(c>3)v-=(c-3)*0.6;}
+    else{
+      run=0;
+      if(c===1){
+        let shots=0;const seen=new Set();
+        for(const k of shooters){const d=k-i;if(d>=1&&d<=24&&!seen.has(d)){seen.add(d);shots+=SHOTS[d];}}
+        v-=riskW*Math.min(1,shots/36)*(i+9)*0.9+0.4;
+      }
+    }
+  }
+  v+=PRIME[Math.min(bestRun,6)]*1.5;
+  v+=s.bar[opp]*closedHome*1.5;
+  v-=s.bar[me]*4;
+  return v;
+}
+function evalShort(s,p){
+  const q=1-p,A=relArr(s,p),B=relArr(s,q);
+  let pipP=s.bar[p]*25,pipQ=s.bar[q]*25;
+  for(let i=0;i<24;i++){pipP+=A[i]*(24-i);pipQ+=B[i]*(24-i);}
+  let minP=s.bar[p]?-1:24;if(minP===24)for(let i=0;i<24;i++)if(A[i]){minP=i;break;}
+  let maxQ=s.bar[q]?24:-1;if(maxQ===-1)for(let j=0;j<24;j++)if(B[j]){maxQ=23-j;break;}
+  if(minP>maxQ){ // гонка, контакта нет
+    let w=0;for(let i=18;i<24;i++)if(A[i]>3)w-=(A[i]-3)*0.3;
+    return (pipQ-pipP)+(s.off[p]-s.off[q])*2+w;
+  }
+  return (pipQ-pipP)+sideShort(s,p,A,B,1)-sideShort(s,q,B,A,0.25);
+}
+const BLK=[0,0,1,3,6,10,15];
+function sideLong(s,me,M,O){
+  const opp=1-me,ro=R2A[V][opp];let v=0;
+  v-=M[0]*0.6;
+  let occ=0;
+  for(let i=1;i<24;i++)if(M[i]){occ++;if(M[i]>4)v-=(M[i]-4)*0.8;}
+  v+=occ*1.2;
+  let minO=24;for(let j=0;j<24;j++)if(O[j]){minO=j;break;}
+  let run=0;
+  for(let j=0;j<24;j++){
+    const mine=own(s,ro[j],me)>0;
+    if(mine)run++;
+    if(!mine||j===23){
+      const end=mine?j:j-1;
+      if(run>=2&&end-run+1>minO)v+=BLK[Math.min(run,6)]*1.3;
+      run=0;
+    }
+  }
+  return v;
+}
+function evalLong(s,p){
+  const q=1-p,A=relArr(s,p),B=relArr(s,q);let pipP=0,pipQ=0;
+  for(let i=0;i<24;i++){pipP+=A[i]*(24-i);pipQ+=B[i]*(24-i);}
+  return (pipQ-pipP)+(s.off[p]-s.off[q])*1.5+sideLong(s,p,A,B)-sideLong(s,q,B,A);
+}
+const evaluate=(s,p)=>V==='long'?evalLong(s,p):evalShort(s,p);
+
+function aiChoose(s,p,rem,hl,diff){
+  const leaves=enumLeaves(s,p,rem,hl);
+  if(!leaves.length)return[];
+  if(leaves.length===1)return leaves[0].path;
+  if(diff==='easy'&&Math.random()<0.45)return leaves[Math.floor(Math.random()*leaves.length)].path;
+  const noise=diff==='easy'?14:diff==='medium'?3:0;
+  const scored=leaves.map(L=>({L,v:evaluate(L.s,p)+(Math.random()-0.5)*noise}));
+  scored.sort((a,b)=>b.v-a.v);
+  if(diff!=='hard')return scored[0].L.path;
+  // Сложный: смотрим на лучший ответ соперника по всем 21 вариантам броска
+  const q=1-p,t0=performance.now();let best=scored[0],bv=-1e9;
+  for(const c of scored.slice(0,5)){
+    let E=0;
+    for(let a=1;a<=6;a++)for(let b=a;b<=6;b++){
+      const w=a===b?1:2,d=a===b?[a,a,a,a]:[b,a];
+      const qhl=(V==='long'&&G.firstTurn[q]&&a===b&&(a===3||a===4||a===6))?2:1;
+      const ql=enumLeaves(c.L.s,q,d,qhl);
+      let m=-1e9;
+      if(!ql.length)m=evaluate(c.L.s,q);
+      else for(const x of ql){const e=evaluate(x.s,q);if(e>m)m=e;}
+      E+=w*m;
+    }
+    const val=-E/36;
+    if(val>bv){bv=val;best=c;}
+    if(performance.now()-t0>2500)break;
+  }
+  return best.L.path;
+}
+
+/* ================= Звук ================= */
+let AC=null,NOISE=null;
+function audioUnlock(){
+  if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)();
+    NOISE=AC.createBuffer(1,AC.sampleRate,AC.sampleRate);const d=NOISE.getChannelData(0);
+    for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;}catch(e){AC=null;}}
+  if(AC&&AC.state==='suspended')AC.resume();
+}
+function tone(f,dur,type,vol,t,slide){
+  const o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.setValueAtTime(f,t);
+  if(slide)o.frequency.exponentialRampToValueAtTime(slide,t+dur);
+  g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+  o.connect(g).connect(AC.destination);o.start(t);o.stop(t+dur+0.02);
+}
+function noise(dur,vol,freq,t){
+  const src=AC.createBufferSource(),f=AC.createBiquadFilter(),g=AC.createGain();
+  src.buffer=NOISE;f.type='bandpass';f.frequency.value=freq;f.Q.value=1.2;
+  g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+  src.connect(f).connect(g).connect(AC.destination);src.start(t,Math.random()*0.5);src.stop(t+dur+0.02);
+}
+function sfx(name){
+  if(!settings.sound||!AC)return;
+  try{
+    const t=AC.currentTime;
+    if(name==='click'){noise(0.05,0.6,1700,t);tone(190,0.09,'sine',0.25,t,90);}
+    else if(name==='hit'){noise(0.09,0.8,900,t);tone(130,0.2,'triangle',0.35,t,55);}
+    else if(name==='dice'){for(let i=0;i<7;i++)noise(0.035,0.45,2300+Math.random()*1800,t+i*0.055+Math.random()*0.02);}
+    else if(name==='win'){[523,659,784,1047].forEach((f,i)=>tone(f,0.3,'triangle',0.2,t+i*0.13));}
+    else if(name==='lose'){[392,330,262].forEach((f,i)=>tone(f,0.35,'triangle',0.18,t+i*0.2));}
+  }catch(e){}
+}
+
+/* ================= Геометрия доски ================= */
+const PW=65;
+function colX(a){
+  let half,col;
+  if(a<=5){half=1;col=5-a;}else if(a<=11){half=0;col=11-a;}
+  else if(a<=17){half=0;col=a-12;}else{half=1;col=a-18;}
+  return (half?490:40)+col*PW+PW/2;
+}
+const isTop=a=>a>=12;
+function slotPos(a,idx,n){
+  const sp=n<=5?52:Math.min(52,210/(n-1));
+  return {x:colX(a),y:isTop(a)?70+idx*sp:650-idx*sp};
+}
+const barPos=(p,idx)=>({x:460,y:p===0?300-idx*44:420+idx*44});
+const offPos=(p,idx)=>({x:p===0?940:-20,y:p===0?668-idx*15:52+idx*15});
+function triPts(a){
+  const x0=colX(a)-PW/2;
+  return isTop(a)?`${x0},40 ${x0+PW},40 ${x0+PW/2},305`:`${x0},680 ${x0+PW},680 ${x0+PW/2},415`;
+}
+function posOfTop(s,p,rel){
+  if(rel<0)return barPos(p,s.bar[p]-1);
+  if(rel>=24)return offPos(p,s.off[p]-1);
+  const a=R2A[V][p][rel],n=own(s,a,p);
+  return slotPos(a,n-1,n);
+}
+
+/* ================= Отрисовка ================= */
+function buildStatic(){
+  let h=`<defs>
+  <filter id="grain" x="0" y="0" width="100%" height="100%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.005 0.09" numOctaves="4" seed="7" result="n"/>
+    <feColorMatrix in="n" type="matrix" values="0 0 0 0 0.22  0 0 0 0 0.11  0 0 0 0 0.03  1.4 0 0 0 -0.5" result="g"/>
+    <feComposite in="g" in2="SourceGraphic" operator="in" result="gi"/>
+    <feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="gi"/></feMerge>
+  </filter>
+  <filter id="sh" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="1.5" dy="2.5" stdDeviation="2" flood-color="#000" flood-opacity=".45"/></filter>
+  <filter id="inset" x="0" y="0" width="100%" height="100%"><feFlood flood-color="#000" flood-opacity=".55"/><feComposite in2="SourceAlpha" operator="out"/><feGaussianBlur stdDeviation="6"/><feComposite in2="SourceAlpha" operator="in"/><feMerge><feMergeNode in="SourceGraphic"/><feMergeNode/></feMerge></filter>
+  <radialGradient id="cW" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="#fffdf6"/><stop offset=".7" stop-color="#eee2c6"/><stop offset="1" stop-color="#c6b086"/></radialGradient>
+  <radialGradient id="cB" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="#7a5242"/><stop offset=".6" stop-color="#341c12"/><stop offset="1" stop-color="#140904"/></radialGradient>
+  <linearGradient id="slW" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fffaf0"/><stop offset="1" stop-color="#cdb98f"/></linearGradient>
+  <linearGradient id="slB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6a4434"/><stop offset="1" stop-color="#1a0c06"/></linearGradient>
+  <linearGradient id="dieL" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fffdf5"/><stop offset="1" stop-color="#e0d0ac"/></linearGradient>
+  <linearGradient id="dieD" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6b4532"/><stop offset="1" stop-color="#22110a"/></linearGradient>
+  <linearGradient id="frameG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#74401f"/><stop offset=".5" stop-color="#5a2f15"/><stop offset="1" stop-color="#43220e"/></linearGradient>
+  <linearGradient id="fieldG" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#d6ad74"/><stop offset=".5" stop-color="#e2bd86"/><stop offset="1" stop-color="#d2a76c"/></linearGradient>
+  <linearGradient id="ptD" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5e2e15"/><stop offset="1" stop-color="#3b1a09"/></linearGradient>
+  <linearGradient id="ptDb" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#5e2e15"/><stop offset="1" stop-color="#3b1a09"/></linearGradient>
+  <linearGradient id="ptL" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6e9cb"/><stop offset="1" stop-color="#dcc493"/></linearGradient>
+  <linearGradient id="ptLb" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#f6e9cb"/><stop offset="1" stop-color="#dcc493"/></linearGradient>
+  </defs>`;
+  h+=`<rect x="-80" y="0" width="1080" height="720" rx="22" fill="url(#frameG)" filter="url(#grain)"/>`;
+  h+=`<rect x="-77" y="3" width="1074" height="714" rx="20" fill="none" stroke="rgba(255,220,170,.18)" stroke-width="2"/>`;
+  for(const x of [40,490]){
+    h+=`<rect x="${x-4}" y="36" width="398" height="648" rx="5" fill="#2a1306" opacity=".6"/>`;
+    h+=`<rect x="${x}" y="40" width="390" height="640" fill="url(#fieldG)" filter="url(#grain)"/>`;
+  }
+  for(let a=0;a<24;a++){
+    const top=isTop(a);
+    let col;if(a<=5)col=5-a;else if(a<=11)col=11-a;else if(a<=17)col=a-12;else col=a-18;
+    const dark=(col+(top?0:1))%2===0;
+    const fill=dark?(top?'ptD':'ptDb'):(top?'ptL':'ptLb');
+    h+=`<polygon points="${triPts(a)}" fill="url(#${fill})" stroke="rgba(40,20,5,.35)" stroke-width="1"/>`;
+  }
+  h+=`<rect x="430" y="40" width="60" height="640" fill="url(#frameG)" filter="url(#grain)"/>`;
+  h+=`<line x1="460" y1="44" x2="460" y2="676" stroke="rgba(0,0,0,.35)" stroke-width="2"/>`;
+  h+=`<rect x="900" y="40" width="80" height="640" rx="6" fill="#2a1408" filter="url(#inset)"/>`;
+  h+=`<rect x="-60" y="40" width="80" height="640" rx="6" fill="#2a1408" filter="url(#inset)"/>`;
+  h+=`<text x="940" y="700" text-anchor="middle" class="lbl">ваш дом</text>`;
+  h+=`<text x="-20" y="27" text-anchor="middle" class="lbl">компьютер</text>`;
+  if(settings.numbers){
+    for(let a=0;a<24;a++){
+      const y=isTop(a)?27:703;
+      h+=`<text x="${colX(a)}" y="${y}" text-anchor="middle" class="lbl">${a+1}</text>`;
+    }
+  }
+  $('static').innerHTML=h;
+}
+function checkerSVG(p,x,y){
+  return `<g transform="translate(${x.toFixed(1)},${y.toFixed(1)})" filter="url(#sh)"><circle r="29" fill="url(#${p?'cB':'cW'})" stroke="${p?'#0a0402':'#a08c64'}" stroke-width="1.5"/><circle r="21" fill="none" stroke="${p?'rgba(255,220,180,.18)':'rgba(120,90,40,.28)'}" stroke-width="2"/><circle r="11" fill="none" stroke="${p?'rgba(255,220,180,.12)':'rgba(120,90,40,.2)'}" stroke-width="1.5"/></g>`;
+}
+const slabSVG=(p,x,y)=>`<rect x="${x-30}" y="${y-6}" width="60" height="12" rx="3" fill="url(#${p?'slB':'slW'})" stroke="${p?'#000':'#8c7a58'}" stroke-width="1"/>`;
+const PIPS={1:[[0,0]],2:[[-1,-1],[1,1]],3:[[-1,-1],[0,0],[1,1]],4:[[-1,-1],[1,-1],[-1,1],[1,1]],5:[[-1,-1],[1,-1],[0,0],[-1,1],[1,1]],6:[[-1,-1],[1,-1],[-1,0],[1,0],[-1,1],[1,1]]};
+function dieSVG(x,y,v,dark,used,shake){
+  let h=`<g transform="translate(${x},${y})" opacity="${used?0.32:1}"><g class="${shake?'shake':''}"><rect x="-25" y="-25" width="50" height="50" rx="9" fill="url(#${dark?'dieD':'dieL'})" stroke="${dark?'#000':'#8c7a58'}" stroke-width="1.5" filter="url(#sh)"/>`;
+  for(const [i,j] of PIPS[v])h+=`<circle cx="${i*13}" cy="${j*13}" r="4.8" fill="${dark?'#f4ead2':'#2a1a0e'}"/>`;
+  return h+'</g></g>';
+}
+
+function render(opt){
+  opt=opt||{};
+  const s=G.s,hide=opt.hide;let h='';
+  if(!s){$('layer').innerHTML='';updateUI();return;}
+  const humanMove=G.turn===0&&G.phase==='move'&&!G.busy;
+  // следы последнего хода компьютера
+  if(G.turn===0&&G.last.length&&G.phase!=='over'&&!G.opening){
+    for(const m of G.last){
+      const r=R2A[V][m.p];
+      if(m.from>=0)h+=`<polygon points="${triPts(r[m.from])}" fill="#5aa9ff" opacity=".22"/>`;
+      if(m.to<24)h+=`<polygon points="${triPts(r[m.to])}" fill="#ff8a3d" opacity=".3"/>`;
+    }
+  }
+  // подсветка целей
+  if(humanMove&&G.sel!==null&&settings.hints){
+    for(const r of G.targets.keys()){
+      if(r>=24)h+=`<rect x="903" y="43" width="74" height="634" rx="6" fill="#ffd34d" opacity=".32"/>`;
+      else{
+        const a=R2A[V][0][r],n=own(s,a,0),pos=slotPos(a,n,n+1);
+        h+=`<polygon points="${triPts(a)}" fill="#ffc21a" opacity=".55"/>`;
+        h+=`<circle cx="${pos.x}" cy="${pos.y}" r="26" fill="#fff3b0" fill-opacity=".45" stroke="#d99a00" stroke-width="3.5" stroke-dasharray="7 5"/>`;
+      }
+    }
+  }
+  // шашки на пунктах
+  for(let a=0;a<24;a++){
+    const v=s.b[a];if(!v)continue;
+    const p=v>0?0:1,n=Math.abs(v);
+    let cnt=n;
+    if(hide&&hide.p===p&&hide.to<24&&R2A[V][p][hide.to]===a)cnt=n-1;
+    for(let i=0;i<cnt;i++){const q=slotPos(a,i,n);h+=checkerSVG(p,q.x,q.y);}
+    if(n>5&&cnt===n){const q=slotPos(a,n-1,n);h+=`<text x="${q.x}" y="${q.y+7}" text-anchor="middle" class="cnt ${p?'d':'l'}">${n}</text>`;}
+  }
+  for(const p of [0,1]){
+    for(let i=0;i<s.bar[p];i++){const q=barPos(p,i);h+=checkerSVG(p,q.x,q.y);}
+    let n=s.off[p];if(hide&&hide.p===p&&hide.to>=24)n--;
+    for(let i=0;i<n;i++){const q=offPos(p,i);h+=slabSVG(p,q.x,q.y);}
+  }
+  // доступные шашки
+  if(humanMove){
+    const srcs=new Set(G.legal.map(m=>m.from));
+    for(const r of srcs){
+      const pos=posOfTop(s,0,r),sel=G.sel===r;
+      if(sel)h+=`<circle cx="${pos.x}" cy="${pos.y}" r="31" fill="none" stroke="#fff2a8" stroke-width="5"/>`;
+      else if(settings.hints)h+=`<circle cx="${pos.x}" cy="${pos.y}" r="30" fill="none" stroke="#ffd34d" stroke-width="3" class="pulse"/>`;
+    }
+  }
+  // кубики
+  if(G.opening){
+    h+=dieSVG(685,360,G.opening.h,false,false,G.opening.rolling);
+    h+=dieSVG(235,360,G.opening.a,true,false,G.opening.rolling);
+  }else if(G.rolling||G.dice.length){
+    const cx=G.turn===0?685:235,dark=G.turn===1;
+    const vals=G.rolling?G.rollShow:G.dice;
+    if(!G.rolling&&vals[0]===vals[1]){
+      const used=4-G.rem.length;
+      for(let i=0;i<4;i++)h+=dieSVG(cx-93+i*62,360,vals[0],dark,i<used,false);
+    }else{
+      vals.forEach((v,i)=>{h+=dieSVG(cx-32+i*64,360,v,dark,!G.rolling&&!G.rem.includes(v),G.rolling);});
+    }
+  }
+  // зоны нажатия
+  for(let a=0;a<24;a++){
+    const x=colX(a)-PW/2;
+    h+=`<rect data-k="pt" data-a="${a}" x="${x}" y="${isTop(a)?40:370}" width="${PW}" height="310" fill="transparent"/>`;
+  }
+  h+=`<rect data-k="bar" data-a="0" x="430" y="40" width="60" height="640" fill="transparent"/>`;
+  h+=`<rect data-k="off" data-a="0" x="900" y="40" width="80" height="640" fill="transparent"/>`;
+  if(G.phase==='roll'&&G.turn===0&&settings.rollMode==='manual'){
+    h+=`<g data-k="roll" data-a="0" style="cursor:pointer"><rect x="585" y="333" width="200" height="54" rx="12" fill="#2b1608" stroke="#ffd34d" stroke-width="2.5" class="pulse"/><text x="685" y="367" text-anchor="middle" fill="#ffe7a6" font-size="21" font-family="Georgia,serif">🎲 Бросить</text></g>`;
+  }
+  $('layer').innerHTML=h;
+  updateUI();
+}
+function updateUI(){
+  const human=G.turn===0;
+  $('btnRoll').hidden=!(G.on&&G.phase==='roll'&&human&&settings.rollMode==='manual');
+  $('btnDone').hidden=G.phase!=='confirm';
+  $('btnUndo').disabled=!(human&&!G.busy&&G.hist.length&&(G.phase==='move'||G.phase==='confirm'));
+  $('score').innerHTML=`Вы <b>${session.me}</b> : <b>${session.ai}</b> Компьютер`;
+  $('variantLabel').textContent=G.on?(V==='long'?'длинные':'короткие')+' · '+DIFF_NAMES[G.diff]:'';
+  $('pips').textContent=(settings.pips&&G.on&&G.s)?`Пипсы — вы: ${pipOf(G.s,0)} · компьютер: ${pipOf(G.s,1)}`:'';
+  $('turnDot').className='dot '+(human?'w':'b');
+}
+function setStatus(t){$('status').textContent=t;}
+
+function animate(from,to,p,dur){
+  return new Promise(res=>{
+    if(dur<=0||document.hidden){res();return;}
+    const g=$('float');g.innerHTML=checkerSVG(p,0,0);const t0=performance.now();
+    const lift=Math.min(40,Math.hypot(to.x-from.x,to.y-from.y)*0.15);
+    function f(t){
+      const k=Math.min(1,(t-t0)/dur),e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;
+      const x=from.x+(to.x-from.x)*e,y=from.y+(to.y-from.y)*e-Math.sin(Math.PI*k)*lift;
+      g.setAttribute('transform',`translate(${x.toFixed(1)},${y.toFixed(1)})`);
+      if(k<1)requestAnimationFrame(f);else{g.innerHTML='';res();}
+    }
+    requestAnimationFrame(f);
+  });
+}
+
+/* ================= Ход игры ================= */
+const G={on:false,s:null,turn:0,phase:'idle',dice:[],rem:[],head:0,hl:1,forceHigh:0,firstTurn:[true,true],
+  hist:[],legal:[],sel:null,targets:new Map(),last:[],turnMoves:[],busy:false,opening:null,rolling:false,rollShow:[1,1],token:0,diff:'medium'};
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const r6=()=>1+Math.floor(Math.random()*6);
+function later(fn,ms){const t=G.token;setTimeout(()=>{if(t===G.token)fn();},ms);}
+const SPEED={slow:[480,520],normal:[300,320],fast:[160,150],off:[0,60]};
+const dur=()=>SPEED[settings.speed][0],gap=()=>SPEED[settings.speed][1];
+
+function newGame(){
+  G.token++;
+  V=prefs.variant;G.diff=prefs.difficulty;
+  Object.assign(G,{on:true,s:newState(V),turn:0,phase:'opening',dice:[],rem:[],head:0,hl:1,forceHigh:0,
+    firstTurn:[true,true],hist:[],legal:[],sel:null,targets:new Map(),last:[],turnMoves:[],busy:false,opening:null,rolling:false});
+  $('float').innerHTML='';
+  closeAll();
+  render();
+  openingRoll();
+}
+async function openingRoll(){
+  const tok=G.token;let h,a;
+  setStatus('Бросок за право первого хода…');
+  do{
+    G.opening={h:1,a:1,rolling:true};sfx('dice');
+    const frames=settings.speed==='off'?2:8;
+    for(let i=0;i<frames;i++){G.opening.h=r6();G.opening.a=r6();render();await sleep(65);if(tok!==G.token)return;}
+    h=r6();a=r6();G.opening={h,a,rolling:false};render();
+    if(h===a){setStatus(`У обоих ${h} — перебрасываем`);await sleep(900);if(tok!==G.token)return;}
+  }while(h===a);
+  const first=h>a?0:1;
+  setStatus(first===0?`У вас ${h}, у компьютера ${a} — вы ходите первым`:`У компьютера ${a}, у вас ${h} — первым ходит компьютер`);
+  await sleep(1400);if(tok!==G.token)return;
+  G.opening=null;
+  if(V==='short'){
+    G.turn=first;G.turnMoves=[];G.hist=[];G.dice=first===0?[h,a]:[a,h];
+    beginMoves(h,a);
+  }else startTurn(first);
+}
+function startTurn(p){
+  G.turn=p;G.phase='roll';G.sel=null;G.targets=new Map();G.turnMoves=[];G.hist=[];G.dice=[];G.rem=[];
+  if(p===1){setStatus('Ход компьютера');render();later(doRoll,450);}
+  else if(settings.rollMode==='auto'){setStatus('Ваш ход');render();later(doRoll,400);}
+  else{setStatus('Ваш ход — бросьте кубики');render();}
+}
+async function doRoll(){
+  if(G.phase!=='roll'||G.busy)return;
+  const tok=G.token;G.phase='rolling';G.rolling=true;sfx('dice');
+  const frames=settings.speed==='off'?2:8;
+  for(let i=0;i<frames;i++){G.rollShow=[r6(),r6()];render();await sleep(60);if(tok!==G.token)return;}
+  const a=r6(),b=r6();G.rolling=false;G.dice=[a,b];
+  beginMoves(a,b);
+}
+function beginMoves(a,b){
+  G.rem=a===b?[a,a,a,a]:[Math.max(a,b),Math.min(a,b)];
+  G.head=0;G.forceHigh=0;
+  G.hl=(V==='long'&&G.firstTurn[G.turn]&&a===b&&(a===3||a===4||a===6))?2:1;
+  const md=maxDepth(G.s,G.turn,G.rem,0,G.hl,new Map());
+  if(md===1&&a!==b){const hi=Math.max(a,b);if(genSingle(G.s,G.turn,hi,0,G.hl).length)G.forceHigh=hi;}
+  const diceTxt=a===b?`дубль ${a}-${a}`:`${a} и ${b}`;
+  if(md===0){
+    G.phase='nomove';G.legal=[];
+    setStatus((G.turn===0?'Выпало ':'У компьютера ')+diceTxt+' — ходов нет, ход переходит');
+    render();later(endTurn,1700);return;
+  }
+  if(G.turn===0){
+    G.phase='move';refreshLegal();autoSelect();
+    let msg=`Выпало ${diceTxt}. Выберите шашку`;
+    if(G.forceHigh)msg=`Выпало ${diceTxt}. Можно сыграть только один кубик — обязательно больший (${G.forceHigh})`;
+    if(G.hl===2)msg+=' (первый ход: можно снять с головы две шашки)';
+    setStatus(msg);render();
+  }else{
+    G.phase='ai';setStatus(`Компьютер: ${diceTxt}…`);render();later(aiTurn,250);
+  }
+}
+function refreshLegal(){
+  G.legal=legalSteps({s:G.s,p:G.turn,rem:G.rem,head:G.head,hl:G.hl,forceHigh:G.forceHigh});
+}
+function autoSelect(){
+  const srcs=uniq(G.legal.map(m=>m.from));
+  if(srcs.length===1&&srcs[0]===-1)selectSrc(-1);
+}
+function selectSrc(r){G.sel=r;G.targets=computeTargets(r);}
+function computeTargets(r){
+  const res=new Map();
+  const queue=[{s:G.s,rem:G.rem,head:G.head,fh:G.forceHigh,pos:r,path:[]}];
+  while(queue.length){
+    const n=queue.shift();
+    const steps=legalSteps({s:n.s,p:0,rem:n.rem,head:n.head,hl:G.hl,forceHigh:n.fh})
+      .filter(m=>m.from===n.pos).sort((x,y)=>x.die-y.die);
+    for(const m of steps){
+      if(res.has(m.to))continue;
+      const path=n.path.concat([m]);res.set(m.to,path);
+      if(m.to<24)queue.push({s:applyMove(n.s,0,m),rem:removeOne(n.rem,m.die),head:n.head+headInc(m),fh:0,pos:m.to,path});
+    }
+  }
+  return res;
+}
+async function doStep(p,m){
+  const tok=G.token;
+  if(p===0)G.hist.push({s:G.s,rem:G.rem,head:G.head,fh:G.forceHigh,moves:G.turnMoves.slice()});
+  const before=G.s,after=applyMove(before,p,m);
+  const from=posOfTop(before,p,m.from);
+  G.s=after;G.rem=removeOne(G.rem,m.die);G.forceHigh=0;G.head+=headInc(m);G.turnMoves.push(m);
+  const to=posOfTop(after,p,m.to);
+  render({hide:{p,to:m.to}});
+  await animate(from,to,p,dur());
+  if(tok!==G.token)return false;
+  sfx(m.hit?'hit':'click');
+  render();
+  return true;
+}
+async function execPath(path){
+  const tok=G.token;
+  G.busy=true;G.sel=null;G.targets=new Map();
+  for(const m of path){if(!(await doStep(0,m))||tok!==G.token)return;}
+  G.busy=false;
+  afterHumanStep();
+}
+function afterHumanStep(){
+  if(G.s.off[0]===15){gameOver(0);return;}
+  refreshLegal();
+  if(!G.legal.length){
+    if(settings.confirmMove){G.phase='confirm';setStatus('Ход сделан. Завершите ход или отмените');}
+    else{render();later(endTurn,250);return;}
+  }else{
+    G.phase='move';autoSelect();
+    setStatus(`Осталось: ${G.rem.join(', ')}. Выберите шашку`);
+  }
+  render();
+}
+function undo(){
+  if(G.turn!==0||G.busy||!G.hist.length||(G.phase!=='move'&&G.phase!=='confirm'))return;
+  const h=G.hist.pop();
+  G.s=h.s;G.rem=h.rem;G.head=h.head;G.forceHigh=h.fh;G.turnMoves=h.moves;
+  G.phase='move';G.sel=null;G.targets=new Map();
+  refreshLegal();autoSelect();
+  setStatus(`Ход отменён. Осталось: ${G.rem.join(', ')}`);
+  sfx('click');render();
+}
+function endTurn(){
+  if(G.phase==='over')return;
+  G.last=G.turnMoves.map(m=>Object.assign({p:G.turn},m));
+  G.firstTurn[G.turn]=false;
+  startTurn(1-G.turn);
+}
+async function aiTurn(){
+  const tok=G.token;
+  setStatus(G.diff==='hard'?'Компьютер думает…':'Ход компьютера…');
+  await sleep(40);if(tok!==G.token)return;
+  const t0=performance.now();
+  const path=aiChoose(G.s,1,G.rem,G.hl,G.diff);
+  const wait=Math.max(0,350-(performance.now()-t0));
+  await sleep(wait);
+  for(const m of path){
+    if(tok!==G.token)return;
+    if(!(await doStep(1,m)))return;
+    if(G.s.off[1]===15){gameOver(1);return;}
+    await sleep(gap());
+  }
+  if(tok!==G.token)return;
+  endTurn();
+}
+function gameOver(w){
+  G.phase='over';G.busy=false;
+  const L=1-w,s=G.s;let pts=1,kind='Обычная победа';
+  if(s.off[L]===0){
+    if(V==='short'){
+      const r=R2A[V][L];let deep=s.bar[L]>0;
+      for(let i=0;i<6;i++)if(own(s,r[i],L))deep=true;
+      if(deep){pts=3;kind='Кокс!';}else{pts=2;kind='Марс!';}
+    }else{pts=2;kind='Марс!';}
+  }
+  const st=stats[V];st.games++;
+  if(w===0){st.wins++;st.ptsFor+=pts;session.me+=pts;if(pts===2)st.marsFor++;if(pts===3)st.koksFor++;}
+  else{st.losses++;st.ptsAgainst+=pts;session.ai+=pts;if(pts===2)st.marsAgainst++;if(pts===3)st.koksAgainst++;}
+  LS.set('nardy.stats',stats);
+  sfx(w===0?'win':'lose');
+  setStatus(w===0?'Вы победили!':'Победил компьютер');
+  render();
+  $('overTitle').textContent=w===0?'Вы победили!':'Победил компьютер';
+  $('overKind').textContent=`${kind} +${pts} ${pts===1?'очко':'очка'}`;
+  $('overScore').textContent=`Счёт сессии — вы ${session.me} : ${session.ai} компьютер`;
+  setTimeout(()=>show('ovOver'),700);
+}
+
+/* ================= Ввод ================= */
+function onBoard(k,a){
+  audioUnlock();
+  if(G.phase==='roll'&&G.turn===0){if(settings.rollMode==='manual')doRoll();return;}
+  if(G.phase!=='move'||G.turn!==0||G.busy)return;
+  const r=k==='pt'?A2R[V][0][a]:k==='bar'?-1:k==='off'?24:null;
+  if(r===null)return;
+  if(G.sel!==null&&G.targets.has(r)){execPath(G.targets.get(r));return;}
+  if(G.legal.some(m=>m.from===r)){
+    if(G.sel===r){G.sel=null;G.targets=new Map();}else selectSrc(r);
+    render();return;
+  }
+  G.sel=null;G.targets=new Map();render();
+}
+$('dyn').addEventListener('click',e=>{
+  const t=e.target.closest('[data-k]');if(!t)return;
+  onBoard(t.dataset.k,+t.dataset.a);
+});
+$('btnRoll').onclick=()=>{audioUnlock();doRoll();};
+$('btnDone').onclick=()=>{audioUnlock();if(G.phase==='confirm')endTurn();};
+$('btnUndo').onclick=()=>{audioUnlock();undo();};
+document.addEventListener('keydown',e=>{
+  if(document.querySelector('.overlay.show'))return;
+  if(e.code==='Space'||e.code==='Enter'){
+    e.preventDefault();audioUnlock();
+    if(G.phase==='roll'&&G.turn===0)doRoll();else if(G.phase==='confirm')endTurn();
+  }else if((e.ctrlKey||e.metaKey)&&e.code==='KeyZ'||e.code==='Backspace'){e.preventDefault();undo();}
+  else if(e.code==='Escape'&&G.sel!==null){G.sel=null;G.targets=new Map();render();}
+});
+
+/* ================= Меню и окна ================= */
+function show(id){document.querySelectorAll('.overlay').forEach(o=>o.classList.toggle('show',o.id===id));}
+function closeAll(){document.querySelectorAll('.overlay').forEach(o=>o.classList.remove('show'));}
+let returnTo=null;
+function openMenu(){
+  $('mContinue').hidden=!(G.on&&G.phase!=='over');
+  syncControls();show('ovMenu');
+}
+function openSub(id){returnTo=document.querySelector('.overlay.show')?.id||null;syncControls();if(id==='ovStats')renderStats();show(id);}
+document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>{if(returnTo==='ovMenu')openMenu();else closeAll();returnTo=null;});
+$('btnMenu').onclick=()=>{audioUnlock();openMenu();};
+$('btnSettings').onclick=()=>{returnTo=null;syncControls();show('ovSettings');};
+$('mNew').onclick=()=>{audioUnlock();newGame();};
+$('mContinue').onclick=()=>closeAll();
+$('mSettings').onclick=()=>openSub('ovSettings');
+$('mStats').onclick=()=>openSub('ovStats');
+$('mRules').onclick=()=>openSub('ovRules');
+$('overNew').onclick=()=>{audioUnlock();newGame();};
+$('overMenu').onclick=()=>openMenu();
+$('statsReset').onclick=()=>{
+  if(!confirm('Сбросить всю статистику?'))return;
+  stats={long:emptyStat(),short:emptyStat()};session.me=session.ai=0;
+  LS.set('nardy.stats',stats);renderStats();updateUI();
+};
+function renderStats(){
+  const L=stats.long,S=stats.short;
+  const rows=[['Партий','games'],['Побед','wins'],['Поражений','losses'],['Очков набрано','ptsFor'],['Очков отдано','ptsAgainst'],
+    ['Ваших марсов','marsFor'],['Марсов вам','marsAgainst'],['Ваших коксов','koksFor'],['Коксов вам','koksAgainst']];
+  const pct=s=>s.games?Math.round(s.wins/s.games*100)+'%':'—';
+  let h='<table><tr><th></th><th>Длинные</th><th>Короткие</th></tr>';
+  for(const [n,k] of rows){if(k.startsWith('koks'))h+=`<tr><td>${n}</td><td>—</td><td>${S[k]}</td></tr>`;else h+=`<tr><td>${n}</td><td>${L[k]}</td><td>${S[k]}</td></tr>`;}
+  h+=`<tr><td>Процент побед</td><td>${pct(L)}</td><td>${pct(S)}</td></tr></table>`;
+  h+=`<p style="text-align:center;margin-top:12px">Счёт текущей сессии: вы ${session.me} : ${session.ai} компьютер</p>`;
+  $('statsBody').innerHTML=h;
+}
+function syncControls(){
+  document.querySelectorAll('.seg[data-key]').forEach(seg=>{
+    const obj=seg.dataset.obj==='prefs'?prefs:settings;
+    seg.querySelectorAll('button').forEach(b=>b.classList.toggle('on',obj[seg.dataset.key]===b.dataset.v));
+  });
+  document.querySelectorAll('.chk input[data-key]').forEach(i=>i.checked=!!settings[i.dataset.key]);
+}
+document.querySelectorAll('.seg[data-key]').forEach(seg=>{
+  seg.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+    const isPrefs=seg.dataset.obj==='prefs',obj=isPrefs?prefs:settings;
+    obj[seg.dataset.key]=b.dataset.v;
+    if(isPrefs){
+      LS.set('nardy.prefs',prefs);
+      if(!G.on&&seg.dataset.key==='variant'){V=prefs.variant;G.s=newState(V);render();}
+    }else applySettings();
+    syncControls();
+  });
+});
+document.querySelectorAll('.chk input[data-key]').forEach(i=>i.onchange=()=>{settings[i.dataset.key]=i.checked;applySettings();});
+function applySettings(){
+  LS.set('nardy.settings',settings);
+  if(settings.sound)audioUnlock();
+  buildStatic();render();
+  if(G.on&&G.phase==='roll'&&G.turn===0&&settings.rollMode==='auto')later(doRoll,300);
+  if(G.on&&G.phase==='confirm'&&!settings.confirmMove)later(endTurn,200);
+}
+
+/* ================= Старт ================= */
+V=prefs.variant;G.s=newState(V);
+buildStatic();syncControls();render();
+setStatus('Выберите вариант и начните партию');
+window.__nardy={G,legalSteps,enumLeaves,aiChoose,newState,applyMove,genSingle,setV:v=>{V=v;},evaluate};
+})();
+</script>
+</body>
+</html>
