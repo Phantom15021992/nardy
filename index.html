@@ -90,7 +90,10 @@ main{flex:1;display:flex;align-items:center;justify-content:center;padding:0 10p
 
 .overlay{position:fixed;inset:0;background:rgba(10,5,2,.72);display:none;align-items:center;justify-content:center;z-index:10;padding:16px}
 .overlay.show{display:flex}
-.modal{
+.xclose{position:absolute;top:8px;right:8px;width:34px;height:34px;padding:0;border-radius:50%;font-size:17px;line-height:1;
+  background:rgba(107,64,32,.12);color:#5a3418;border:1px solid rgba(107,64,32,.35);box-shadow:none}
+.xclose:hover{background:rgba(107,64,32,.25)}
+.modal{position:relative;
   background:linear-gradient(#f7ecd2,#e8d4aa);color:#3b2412;border-radius:14px;border:3px solid #6b4020;
   box-shadow:0 20px 60px rgba(0,0,0,.6);padding:22px 26px;width:min(480px,calc(100% / var(--fs)));max-height:calc((var(--appH) - 24px) / var(--fs));overflow:auto;
 }
@@ -1454,7 +1457,7 @@ $('btnDone').onclick=()=>{audioUnlock();if(G.phase==='confirm')endTurn();};
 $('btnUndo').onclick=()=>{audioUnlock();undo();};
 $('btnResign').onclick=()=>{audioUnlock();resign();};
 document.addEventListener('keydown',e=>{
-  if(document.querySelector('.overlay.show'))return;
+  if(document.querySelector('.overlay.show')){if(e.code==='Escape')closeOverlay();return;}
   if(e.code==='Space'||e.code==='Enter'){
     e.preventDefault();audioUnlock();
     if(G.phase==='roll'&&G.turn===0)doRoll();else if(G.phase==='confirm')endTurn();
@@ -1473,7 +1476,20 @@ function openMenu(){
   syncControls();show('ovMenu');
 }
 function openSub(id){returnTo=document.querySelector('.overlay.show')?.id||null;syncControls();if(id==='ovStats')renderStats();show(id);}
-document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>{if(returnTo==='ovMenu')openMenu();else closeAll();returnTo=null;});
+// Закрыть текущее окно: подстраница меню возвращает в меню, остальные — к доске
+function closeOverlay(){
+  const cur=document.querySelector('.overlay.show');
+  if(cur&&cur.id!=='ovMenu'&&returnTo==='ovMenu')openMenu();else closeAll();
+  returnTo=null;
+}
+document.querySelectorAll('[data-close]').forEach(b=>b.onclick=closeOverlay);
+document.querySelectorAll('.overlay').forEach(o=>{
+  // нажатие мимо окна — закрыть
+  o.addEventListener('click',e=>{if(e.target===o)closeOverlay();});
+  // крестик в углу каждого окна
+  const x=document.createElement('button');x.className='xclose';x.title='Закрыть';x.setAttribute('aria-label','Закрыть');x.textContent='✕';
+  x.onclick=closeOverlay;o.querySelector('.modal').prepend(x);
+});
 $('btnMenu').onclick=()=>{audioUnlock();openMenu();};
 $('btnSettings').onclick=()=>{returnTo=null;syncControls();show('ovSettings');};
 $('mNew').onclick=()=>{audioUnlock();newGame();};
