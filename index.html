@@ -8,7 +8,8 @@
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 /* --appH — высота игровой области, --chrome — сколько занимают шапка и панель снизу */
-:root{--appH:100vh;--rotW:100vh;--chrome:140px}
+/* --fs — масштаб шрифта (настройка × авто-увеличение при повороте), --ar — пропорции доски */
+:root{--appH:100vh;--rotW:100vh;--fs:1;--ar:1.5;--chrome:calc(140px * var(--fs))}
 @supports (height:100dvh){:root{--appH:100dvh;--rotW:100dvh}}
 html,body{margin:0;height:100%}
 body{
@@ -26,7 +27,7 @@ html.rot #app{position:fixed;top:0;left:0;width:var(--rotW);height:100vw;min-hei
 #btnRotate{display:none}
 @media (pointer:coarse){#btnRotate{display:inline-block}}
 /* Компактная раскладка для низкого экрана (телефон горизонтально) */
-html.compact{--chrome:84px}
+html.compact{--chrome:calc(84px * var(--fs))}
 html.compact .topbar{padding:4px 10px;gap:6px;flex-wrap:nowrap}
 html.compact .brand{font-size:18px}
 html.compact .brand small{display:none}
@@ -43,6 +44,22 @@ html.compact .modal h2{font-size:22px;margin-bottom:6px}
 html.compact .opt{margin:8px 0}
 html.compact .mbtns{margin-top:10px}
 html.compact .mbtns button{font-size:15px;padding:6px}
+/* Горизонтальный телефон: шапка и кнопки уходят в боковые колонки, доска занимает всю высоту */
+html.land{--chrome:10px;--sideW:122px}
+html.land #app{flex-direction:row;align-items:stretch}
+html.land .topbar{flex-direction:column;justify-content:center;align-items:stretch;width:var(--sideW);flex:none;padding:6px;gap:8px}
+html.land .brand{text-align:center;font-size:20px}
+html.land .score{white-space:normal;text-align:center;font-size:14px;padding:4px 6px;border-radius:12px}
+html.land .actions{flex-direction:column;gap:6px}
+html.land main{padding:4px 2px;min-width:0}
+html.land .controls{flex-direction:column;justify-content:center;width:var(--sideW);flex:none;padding:6px;gap:10px}
+html.land .status-box{flex:none;text-align:center;overflow:visible}
+html.land #status{white-space:normal;font-size:14px;line-height:1.3}
+html.land #pips{display:block;font-size:12px}
+html.land .btns{flex-direction:column;gap:6px}
+html.land .btns button,html.land .actions button{width:100%}
+/* Размер шрифта: интерфейс масштабируется целиком, доска — только подписи */
+.topbar,.controls,.modal{zoom:var(--fs)}
 .topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 16px;flex-wrap:wrap}
 .brand{font-size:26px;letter-spacing:1px;color:#f0d9a8;text-shadow:0 2px 0 #000;white-space:nowrap}
 .brand small{font-size:14px;color:#c9a979;margin-left:8px;letter-spacing:0}
@@ -59,7 +76,7 @@ button:active{transform:translateY(1px)}
 button:disabled{opacity:.4;cursor:default;filter:none;transform:none}
 button.primary{background:linear-gradient(#e8bb55,#a8771f);color:#2a1606;font-weight:bold}
 main{flex:1;display:flex;align-items:center;justify-content:center;padding:0 10px;min-height:0}
-.board-wrap{position:relative;width:min(100%,calc((var(--appH) - var(--chrome)) * 1.5));aspect-ratio:1080/720;margin:auto}
+.board-wrap{position:relative;width:min(100%,calc((var(--appH) - var(--chrome)) * var(--ar)));aspect-ratio:var(--ar);margin:auto}
 .board-wrap svg{position:absolute;inset:0;width:100%;height:100%;display:block;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
 #dyn{will-change:transform}
 .controls{display:flex;align-items:center;justify-content:center;gap:12px;padding:8px 16px 14px;flex-wrap:wrap}
@@ -75,7 +92,7 @@ main{flex:1;display:flex;align-items:center;justify-content:center;padding:0 10p
 .overlay.show{display:flex}
 .modal{
   background:linear-gradient(#f7ecd2,#e8d4aa);color:#3b2412;border-radius:14px;border:3px solid #6b4020;
-  box-shadow:0 20px 60px rgba(0,0,0,.6);padding:22px 26px;width:min(480px,100%);max-height:calc(var(--appH) - 24px);overflow:auto;
+  box-shadow:0 20px 60px rgba(0,0,0,.6);padding:22px 26px;width:min(480px,calc(100% / var(--fs)));max-height:calc((var(--appH) - 24px) / var(--fs));overflow:auto;
 }
 .modal h2{margin:0 0 14px;text-align:center;font-size:28px;letter-spacing:1px}
 .modal h3{margin:16px 0 6px;font-size:18px}
@@ -84,8 +101,12 @@ main{flex:1;display:flex;align-items:center;justify-content:center;padding:0 10p
 .opt{margin:14px 0}
 .opt .label{font-weight:bold;margin-bottom:6px}
 .seg{display:flex;gap:6px;flex-wrap:wrap}
-.seg button{flex:1;min-width:52px;background:linear-gradient(#f1e3c2,#d7bf8e);color:#3b2412;box-shadow:none;border:1px solid #a07c48}
+.seg button{flex:1;min-width:52px;padding:7px 6px;hyphens:auto;-webkit-hyphens:auto;overflow-wrap:anywhere;background:linear-gradient(#f1e3c2,#d7bf8e);color:#3b2412;box-shadow:none;border:1px solid #a07c48}
 .seg button.on{background:linear-gradient(#a06a35,#6b3e1b);color:#fff;border-color:#3a210c}
+.styles{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+.styles button{display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px;background:linear-gradient(#f1e3c2,#d7bf8e);color:#3b2412;box-shadow:none;border:2px solid #b8955c;font-size:13px}
+.styles button.on{border-color:#6b3e1b;background:linear-gradient(#e2c891,#c29a5a);box-shadow:0 0 0 2px #a8771f inset}
+.styles .pv{width:100%;height:auto;display:block;border-radius:4px}
 .chk{display:flex;align-items:center;gap:10px;margin:9px 0;font-size:15px;cursor:pointer}
 .chk input{width:18px;height:18px;accent-color:#7a4520}
 .mbtns{display:flex;flex-direction:column;gap:8px;margin-top:18px}
@@ -102,9 +123,9 @@ td:first-child,th:first-child{text-align:left}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
 .shake{animation:shake .14s linear infinite;transform-box:fill-box;transform-origin:center}
 @keyframes shake{0%{transform:rotate(-12deg)}50%{transform:rotate(12deg)}100%{transform:rotate(-12deg)}}
-.cnt{font:bold 22px Georgia,serif;pointer-events:none}
+.cnt{font:bold calc(22px * min(var(--fs), 1.4)) Georgia,serif;pointer-events:none}
 .cnt.l{fill:#5a3a18}.cnt.d{fill:#f2dfba}
-.lbl{font:13px Georgia,serif;fill:#d9b98a;opacity:.75}
+.lbl{font:calc(13px * var(--fs)) Georgia,serif;fill:#d9b98a;opacity:.8}
 @media (max-width:600px){
   .brand{font-size:21px}.score{font-size:15px}
   button{font-size:14px;padding:7px 11px}
@@ -166,6 +187,7 @@ td:first-child,th:first-child{text-align:left}
       <button class="primary" id="mNew">Новый матч</button>
       <button id="mContinue" hidden>Продолжить партию</button>
       <button id="mSettings">Настройки</button>
+      <button id="mStyle">Оформление</button>
       <button id="mStats">Статистика</button>
       <button id="mRules">Правила и управление</button>
     </div>
@@ -186,6 +208,12 @@ td:first-child,th:first-child{text-align:left}
         <button data-v="slow">Медленно</button><button data-v="normal">Обычно</button><button data-v="fast">Быстро</button><button data-v="off">Без анимации</button>
       </div>
     </div>
+    <div class="opt"><div class="label">Размер шрифта</div>
+      <div class="seg" data-obj="settings" data-key="fontSize">
+        <button data-v="s">Мелкий</button><button data-v="m">Обычный</button><button data-v="l">Крупный</button><button data-v="xl">Очень крупный</button>
+      </div>
+      <div style="font-size:13px;color:#6b4a2a;margin-top:4px">При повороте телефона шрифт автоматически увеличивается ещё на 15%.</div>
+    </div>
     <label class="chk"><input type="checkbox" data-key="hints"> Подсвечивать возможные ходы</label>
     <label class="chk"><input type="checkbox" data-key="confirmMove"> Подтверждать конец хода (можно отменить ход)</label>
     <label class="chk"><input type="checkbox" data-key="sound"> Звук</label>
@@ -205,6 +233,17 @@ td:first-child,th:first-child{text-align:left}
 </div>
 
 <!-- Правила -->
+<!-- Оформление -->
+<div class="overlay" id="ovStyle">
+  <div class="modal">
+    <h2>Оформление</h2>
+    <div class="opt"><div class="label">Доска</div><div class="styles" id="boardStyles"></div></div>
+    <div class="opt"><div class="label">Шашки</div><div class="styles" id="checkerStyles"></div></div>
+    <div class="opt"><div class="label">Игральные кости</div><div class="styles" id="diceStyles"></div></div>
+    <div class="row"><button class="primary" data-close>Готово</button></div>
+  </div>
+</div>
+
 <div class="overlay" id="ovRules">
   <div class="modal">
     <h2>Правила</h2>
@@ -264,7 +303,7 @@ const LS={
   get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},
   set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
 };
-const DEF_SETTINGS={rollMode:'manual',confirmMove:true,sound:true,speed:'normal',hints:true,numbers:true,pips:true};
+const DEF_SETTINGS={board:'classic',checkers:'classic',dice:'classic',fontSize:'m',rollMode:'manual',confirmMove:true,sound:true,speed:'normal',hints:true,numbers:true,pips:true};
 const settings=Object.assign({},DEF_SETTINGS,LS.get('nardy.settings',{}));
 const prefs=Object.assign({variant:'long',difficulty:'medium',matchLen:'7'},LS.get('nardy.prefs',{}));
 const emptyStat=()=>({games:0,wins:0,losses:0,ptsFor:0,ptsAgainst:0,marsFor:0,marsAgainst:0,koksFor:0,koksAgainst:0,matchWins:0,matchLosses:0});
@@ -557,7 +596,30 @@ function slotPos(a,idx,n){
   return {x:colX(a),y:isTop(a)?70+idx*sp:650-idx*sp};
 }
 const barPos=(p,idx)=>({x:460,y:p===0?300-idx*44:420+idx*44});
-const offPos=(p,idx)=>({x:p===0?940:-20,y:p===0?668-idx*15:52+idx*15});
+// Лотки для выброшенных шашек: ваш снизу (заполняется справа налево), компьютера сверху (слева направо)
+// Две раскладки доски. Поле (пункты, бар) одинаковое, отличаются только лотки для выброшенных шашек:
+//  side — лотки слева и справа (широкая доска, для горизонтального экрана),
+//  tb   — лотки сверху и снизу (почти квадратная доска, для вертикального телефона).
+const GEOS={
+  side:{vb:[-80,0,1080,720],
+    trays:[[900,40,80,640],[-60,40,80,640]],
+    off:(p,i)=>({x:p===0?940:-20,y:p===0?668-i*15:52+i*15}),slabV:false,
+    offHit:[900,40,80,640],lblMe:[940,703,'middle'],lblAi:[-20,27,'middle'],originY:[705,15]},
+  tb:{vb:[0,-72,920,864],
+    trays:[[40,712,840,66],[40,-58,840,66]],
+    off:(p,i)=>({x:p===0?862-i*15:58+i*15,y:p===0?745:-25}),slabV:true,
+    offHit:[40,700,840,92],lblMe:[58,750,'start'],lblAi:[862,-20,'end'],originY:[760,-40]}
+};
+let GEO='side';
+const geo=()=>GEOS[GEO];
+const offPos=(p,idx)=>geo().off(p,idx);
+function setGeo(g){
+  if(g===GEO&&$('static').innerHTML)return false;
+  GEO=g;const v=geo().vb;
+  for(const id of ['static','dyn'])$(id).setAttribute('viewBox',v.join(' '));
+  document.documentElement.style.setProperty('--ar',(v[2]/v[3]).toFixed(4));
+  return true;
+}
 function triPts(a){
   const x0=colX(a)-PW/2;
   return isTop(a)?`${x0},40 ${x0+PW},40 ${x0+PW/2},305`:`${x0},680 ${x0+PW},680 ${x0+PW/2},415`;
@@ -570,63 +632,259 @@ function posOfTop(s,p,rel){
 }
 
 /* ================= Отрисовка ================= */
-function buildStatic(){
-  let h=`<defs>
-  <filter id="grain" x="0" y="0" width="100%" height="100%">
-    <feTurbulence type="fractalNoise" baseFrequency="0.005 0.09" numOctaves="4" seed="7" result="n"/>
-    <feColorMatrix in="n" type="matrix" values="0 0 0 0 0.22  0 0 0 0 0.11  0 0 0 0 0.03  1.4 0 0 0 -0.5" result="g"/>
-    <feComposite in="g" in2="SourceGraphic" operator="in" result="gi"/>
-    <feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="gi"/></feMerge>
-  </filter>
+/* ================= Оформление: стили доски и шашек ================= */
+// Общие фильтры (тени, вдавленные лотки) — нужны всегда, не зависят от стиля
+const COMMON_DEFS=`<defs>
   <filter id="sh" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="1.5" dy="2.5" stdDeviation="2" flood-color="#000" flood-opacity=".45"/></filter>
   <filter id="inset" x="0" y="0" width="100%" height="100%"><feFlood flood-color="#000" flood-opacity=".55"/><feComposite in2="SourceAlpha" operator="out"/><feGaussianBlur stdDeviation="6"/><feComposite in2="SourceAlpha" operator="in"/><feMerge><feMergeNode in="SourceGraphic"/><feMergeNode/></feMerge></filter>
-  <radialGradient id="cW" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="#fffdf6"/><stop offset=".7" stop-color="#eee2c6"/><stop offset="1" stop-color="#c6b086"/></radialGradient>
-  <radialGradient id="cB" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="#7a5242"/><stop offset=".6" stop-color="#341c12"/><stop offset="1" stop-color="#140904"/></radialGradient>
-  <linearGradient id="slW" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fffaf0"/><stop offset="1" stop-color="#cdb98f"/></linearGradient>
-  <linearGradient id="slB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6a4434"/><stop offset="1" stop-color="#1a0c06"/></linearGradient>
-  <linearGradient id="dieL" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fffdf5"/><stop offset="1" stop-color="#e0d0ac"/></linearGradient>
-  <linearGradient id="dieD" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7a4e38"/><stop offset=".55" stop-color="#3e2014"/><stop offset="1" stop-color="#1c0d06"/></linearGradient>
-  <radialGradient id="pipL" cx="62%" cy="65%" r="70%"><stop offset="0" stop-color="#5a3a22"/><stop offset=".6" stop-color="#2a170a"/><stop offset="1" stop-color="#0d0603"/></radialGradient>
-  <radialGradient id="pipD" cx="40%" cy="35%" r="75%"><stop offset="0" stop-color="#fffaf0"/><stop offset="1" stop-color="#c9b48a"/></radialGradient>
   <filter id="dblur" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="3.5"/></filter>
-  <linearGradient id="frameG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#74401f"/><stop offset=".5" stop-color="#5a2f15"/><stop offset="1" stop-color="#43220e"/></linearGradient>
-  <linearGradient id="fieldG" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#d6ad74"/><stop offset=".5" stop-color="#e2bd86"/><stop offset="1" stop-color="#d2a76c"/></linearGradient>
-  <linearGradient id="ptD" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5e2e15"/><stop offset="1" stop-color="#3b1a09"/></linearGradient>
-  <linearGradient id="ptDb" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#5e2e15"/><stop offset="1" stop-color="#3b1a09"/></linearGradient>
-  <linearGradient id="ptL" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6e9cb"/><stop offset="1" stop-color="#dcc493"/></linearGradient>
-  <linearGradient id="ptLb" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#f6e9cb"/><stop offset="1" stop-color="#dcc493"/></linearGradient>
-  </defs>`;
-  h+=`<rect x="-80" y="0" width="1080" height="720" rx="22" fill="url(#frameG)" filter="url(#grain)"/>`;
-  h+=`<rect x="-77" y="3" width="1074" height="714" rx="20" fill="none" stroke="rgba(255,220,170,.18)" stroke-width="2"/>`;
-  for(const x of [40,490]){
-    h+=`<rect x="${x-4}" y="36" width="398" height="648" rx="5" fill="#2a1306" opacity=".6"/>`;
-    h+=`<rect x="${x}" y="40" width="390" height="640" fill="url(#fieldG)" filter="url(#grain)"/>`;
+  <radialGradient id="pearlG" cx="35%" cy="35%" r="80%"><stop offset="0" stop-color="#ffffff"/><stop offset=".4" stop-color="#e6f0f6"/><stop offset=".7" stop-color="#f3e2ee"/><stop offset="1" stop-color="#d6e8e2"/></radialGradient>
+  <radialGradient id="silverG" cx="40%" cy="35%" r="75%"><stop offset="0" stop-color="#ffffff"/><stop offset=".5" stop-color="#c9ccd2"/><stop offset="1" stop-color="#7c8088"/></radialGradient>
+  <radialGradient id="opalG" cx="40%" cy="40%" r="75%"><stop offset="0" stop-color="#f4fff8"/><stop offset=".35" stop-color="#7fe0c4"/><stop offset=".6" stop-color="#3fa0e0"/><stop offset=".8" stop-color="#e88fc4"/><stop offset="1" stop-color="#5cc48a"/></radialGradient>
+  <linearGradient id="oliveG" x1="0" y1="0" x2="1" y2=".4"><stop offset="0" stop-color="#e0b47a"/><stop offset=".3" stop-color="#8a5a2a"/><stop offset=".5" stop-color="#d9a868"/><stop offset=".75" stop-color="#7a4a20"/><stop offset="1" stop-color="#c99a5a"/></linearGradient>
+</defs>`;
+
+// ---- Доски ----
+// frame/field — градиенты рамки и поля; grain — текстура дерева (частота, цвет прожилок, сила);
+// pt — форма пунктов; ptA/ptB — цвета чередующихся пунктов; med — узор в центре половин; scallop — фигурный край.
+const BOARDS={
+  classic:{name:'Классика',frame:['#74401f','#5a2f15','#43220e'],field:['#d6ad74','#e2bd86','#d2a76c'],
+    grain:{f:'0.005 0.09',c:[.22,.11,.03],k:1.4},pt:'tri',ptA:['#5e2e15','#3b1a09'],ptB:['#f6e9cb','#dcc493'],
+    bar:null,tray:'#2a1408',lbl:'#d9b98a'},
+  walnut:{name:'Орех',frame:['#c99062','#ad7546','#8f5b33'],field:['#5e3922','#6d4429','#55321d'],
+    grain:{f:'0.11 0.004',c:[.12,.06,.03],k:1.7},pt:'tri',ptA:['#231a15','#120d0a'],ptB:['#efe0c0','#d8c296'],
+    med:'diamond',medC:['#17100c','#ead9b6'],tray:'#8a5a33',lbl:'#3b2414'},
+  carved:{name:'Резная',frame:['#6e4724','#5a391b','#432913'],field:['#7d5129','#8b5d31','#714824'],
+    grain:{f:'0.006 0.08',c:[.18,.09,.03],k:1.2},pt:'drop',ptA:['#e9bd84','#d49f5e'],ptB:['#e9bd84','#d49f5e'],ptLine:'#3d240f',
+    med:'rosette',medC:['#e9bd84','#3d240f'],tray:'#3f2612',lbl:'#e6c79a'},
+  plywood:{name:'Фанера',frame:['#ecd6a6','#dfc48f','#d0b27c'],field:['#f2e2bb','#f7eacb','#eddcb0'],
+    grain:{f:'0.004 0.05',c:[.55,.4,.2],k:.9},pt:'line',ptA:['#3b2314'],ptB:['#3b2314'],
+    med:'damask',medC:['#3b2314'],scallop:'#d7bd88',tray:'#b8955c',lbl:'#5a3c1e'},
+  carpet:{name:'Ковёр',frame:['#ecd2a2','#dcbf8b','#cdae79'],field:['#e2aa6c','#eab97d','#d99f60'],
+    grain:{f:'0.09 0.005',c:[.45,.22,.08],k:1.1},pt:'orn',ptA:['#b8432a','#1c130f','#f5e7cc'],ptB:['#b8432a','#1c130f','#f5e7cc'],
+    med:'carpet',medC:['#c04a2c','#1c130f','#f5e7cc'],scallop:'#d8b986',tray:'#b8905a',lbl:'#5a3418'},
+  graphite:{name:'Графит',frame:['#3c3c3f','#2c2c2f','#1e1e21'],field:['#17181c','#1e1f24','#141519'],
+    grain:{f:'0.12 0.004',c:[.5,.5,.52],k:.8},pt:'tri',ptA:['#8c8c90','#68686c'],ptB:['#ebe4da','#c8c0b4'],
+    med:'diamond',medC:['#e2dbd0','#77777c'],tray:'#26262a',lbl:'#b9b9bd'},
+  night:{name:'Ночь',frame:['#3a3634','#2c2927','#201d1b'],field:['#2c2826','#35302d','#272321'],
+    grain:{f:'0.008 0.07',c:[.4,.38,.36],k:.7},pt:'drop',ptA:['#f1eee8','#d9d4ca'],ptB:['#f1eee8','#d9d4ca'],ptLine:'#9c968c',
+    med:'rosette',medC:['#f1eee8','#2c2826'],scallop:'#24211f',tray:'#1d1a18',lbl:'#cfc9bf'},
+  engraved:{name:'Гравюра',frame:['#6a676b','#57545a','#424046'],field:['#c4692c','#d07a39','#b85f25'],
+    grain:{f:'0.008 0.06',c:[.35,.12,.02],k:.8},pt:'engr',ptA:['#6e3210'],ptB:['#6e3210'],
+    med:'sun',medC:['#743613'],scallop:'#4c494f',tray:'#3a383d',lbl:'#e8d6c4'}
+};
+const grad=(id,c,x2=1,y2=0)=>`<linearGradient id="${id}" x1="0" y1="0" x2="${x2}" y2="${y2}">${c.map((v,i)=>`<stop offset="${c.length>1?i/(c.length-1):0}" stop-color="${v}"/>`).join('')}</linearGradient>`;
+function grainFilter(id,g){
+  return `<filter id="${id}" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="${g.f}" numOctaves="4" seed="7" result="n"/>`
+   +`<feColorMatrix in="n" type="matrix" values="0 0 0 0 ${g.c[0]}  0 0 0 0 ${g.c[1]}  0 0 0 0 ${g.c[2]}  ${g.k} 0 0 0 -0.5" result="g"/>`
+   +`<feComposite in="g" in2="SourceGraphic" operator="in" result="gi"/><feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="gi"/></feMerge></filter>`;
+}
+// Пункт в локальных координатах: основание у края (y=0), остриё к центру; ширина 65.
+// col — номер столбца в половине (0..5), alt — чередование цвета.
+function pointShape(B,pre,col,alt){
+  const A=alt?B.ptA:B.ptB;
+  switch(B.pt){
+    case 'tri':
+      return `<path d="M0 0 H65 L32.5 265 Z" fill="url(#${pre}${alt?'pa':'pb'})" stroke="rgba(0,0,0,.25)" stroke-width="1"/>`;
+    case 'drop': // вытянутая капля с наконечником-лилией (резные доски)
+      return `<path d="M11 18 Q11 6 32.5 6 Q54 6 54 18 C54 70 37 150 32.5 205 C28 150 11 70 11 18 Z" fill="url(#${pre}pa)" stroke="${B.ptLine}" stroke-width="1.5"/>`
+        +`<path d="M32.5 212 L40 232 L32.5 226 L25 232 Z M32.5 232 L32.5 246" fill="${A[0]}" stroke="${A[0]}" stroke-width="2" stroke-linejoin="round"/>`
+        +`<path d="M24 240 Q32.5 230 41 240" fill="none" stroke="${A[0]}" stroke-width="2"/>`;
+    case 'line': { // выжженный орнамент тонкой линией (фанера)
+      const L=[235,205,175,175,205,235][col],c=A[0];
+      return `<g fill="none" stroke="${c}" stroke-width="2.4" stroke-linecap="round">`
+        +`<circle cx="32.5" cy="16" r="7"/><path d="M32.5 23 V${L}"/>`
+        +`<path d="M32.5 ${L*0.3} q-14 10 0 22 q14 -12 0 -22"/>`
+        +`<path d="M32.5 ${L*0.55} c-16 -6 -16 18 0 14 c16 4 16 -20 0 -14"/>`
+        +`<path d="M22 ${L*0.78} L32.5 ${L*0.86} L43 ${L*0.78}"/></g>`
+        +`<path d="M32.5 ${L} l-5 -12 h10 Z" fill="${c}"/>`;
+    }
+    case 'orn': { // капля с ковровым орнаментом
+      let h=`<path d="M14 14 Q14 4 32.5 4 Q51 4 51 14 C51 80 38 170 32.5 240 C27 170 14 80 14 14 Z" fill="${A[2]}" stroke="${A[0]}" stroke-width="2.5"/>`;
+      for(let y=22,i=0;y<200;y+=22,i++){
+        const w=Math.max(3,11-y/28);
+        h+=`<path d="M32.5 ${y-8} L${32.5+w} ${y} L32.5 ${y+8} L${32.5-w} ${y} Z" fill="${i%2?A[1]:A[0]}"/>`;
+      }
+      return h+`<path d="M24 10 h17" stroke="${A[1]}" stroke-width="3"/>`;
+    }
+    case 'engr': { // тонкая гравировка с цветком у основания
+      const c=A[0];
+      return `<g fill="none" stroke="${c}" stroke-width="1.6" stroke-linecap="round"><path d="M32.5 12 V250"/>`
+        +`<path d="M32.5 30 q-10 -8 -12 4 q8 6 12 -4 q10 -8 12 4 q-8 6 -12 -4"/>`
+        +`<path d="M32.5 95 c-8 -10 -14 0 -6 6 M32.5 95 c8 -10 14 0 6 6"/>`
+        +`<path d="M32.5 160 l-6 10 M32.5 160 l6 10"/></g>`;
+    }
   }
+  return '';
+}
+// Узор в центре половины доски, координаты относительно центра
+function medallion(B){
+  const c=B.medC||[];
+  switch(B.med){
+    case 'diamond':
+      return `<path d="M-112 0 L0 -44 L112 0 L0 44 Z" fill="${c[0]}"/><path d="M-98 0 L0 -38 L98 0 L0 38 Z" fill="${c[1]}"/>`
+        +`<path d="M-64 0 L-46 -8 L-38 -16 L-12 -16 L0 -24 L12 -16 L38 -16 L46 -8 L64 0 L46 8 L38 16 L12 16 L0 24 L-12 16 L-38 16 L-46 8 Z" fill="${c[0]}"/>`
+        +`<path d="M-32 0 L0 -12 L32 0 L0 12 Z" fill="${c[1]}"/>`;
+    case 'rosette': {
+      let h=`<circle r="52" fill="none" stroke="${c[0]}" stroke-width="3"/><circle r="46" fill="none" stroke="${c[0]}" stroke-width="1.2"/>`;
+      for(let i=0;i<12;i++){const a=i*30;h+=`<path transform="rotate(${a})" d="M0 -40 c6 -2 8 4 3 6 c-4 1 -6 -3 -3 -6" fill="none" stroke="${c[0]}" stroke-width="1.6"/>`;}
+      h+=`<circle r="29" fill="${c[0]}"/><circle r="26" fill="none" stroke="${c[1]}" stroke-width="1.2"/>`;
+      for(let i=0;i<16;i++)h+=`<path transform="rotate(${i*22.5})" d="M0 -7 L-3 -25 Q0 -27 3 -25 Z" fill="${c[1]}" opacity=".85"/>`;
+      return h+`<circle r="5" fill="${c[1]}"/>`;
+    }
+    case 'damask': {
+      let h=`<g fill="${c[0]}">`;
+      for(let i=0;i<16;i++)h+=`<path transform="rotate(${i*22.5})" d="M0 -56 c7 4 7 12 0 16 c-7 -4 -7 -12 0 -16 Z"/>`;
+      h+=`</g><circle r="44" fill="none" stroke="${c[0]}" stroke-width="2"/>`;
+      // центральный цветок-«дамаск»
+      h+=`<g fill="${c[0]}"><path d="M0 -34 C8 -20 8 -6 0 6 C-8 -6 -8 -20 0 -34 Z"/><path d="M0 34 C6 24 6 14 0 8 C-6 14 -6 24 0 34 Z"/>`
+        +`<path d="M0 -4 C10 -16 24 -14 28 -4 C18 -8 10 -4 0 2 Z"/><path d="M0 -4 C-10 -16 -24 -14 -28 -4 C-18 -8 -10 -4 0 2 Z"/>`
+        +`<path d="M0 8 C10 4 20 10 22 20 C14 14 8 14 0 14 Z"/><path d="M0 8 C-10 4 -20 10 -22 20 C-14 14 -8 14 0 14 Z"/></g>`;
+      return h;
+    }
+    case 'carpet': {
+      const star='M-80 0 L-52 -10 L-42 -38 L-12 -30 L0 -50 L12 -30 L42 -38 L52 -10 L80 0 L52 10 L42 38 L12 30 L0 50 L-12 30 L-42 38 L-52 10 Z';
+      return `<path d="${star}" fill="${c[2]}" stroke="${c[0]}" stroke-width="3"/>`
+        +`<path d="${star}" transform="scale(.72)" fill="${c[0]}"/>`
+        +`<path d="${star}" transform="scale(.46)" fill="${c[1]}"/>`
+        +`<path d="M-12 0 L0 -12 L12 0 L0 12 Z" fill="${c[2]}"/>`
+        +[0,90,180,270].map(a=>`<path transform="rotate(${a})" d="M0 -58 l-6 -8 h12 Z M84 0" fill="${c[1]}"/>`).join('');
+    }
+    case 'sun': {
+      let h=`<circle r="54" fill="none" stroke="${c[0]}" stroke-width="2"/><circle r="47" fill="none" stroke="${c[0]}" stroke-width="5" stroke-dasharray="5 3"/><circle r="40" fill="none" stroke="${c[0]}" stroke-width="1.5"/>`;
+      for(let i=0;i<16;i++)h+=`<path transform="rotate(${i*22.5})" d="M0 -38 L5 -18 L-5 -18 Z" fill="none" stroke="${c[0]}" stroke-width="1.5"/>`;
+      h+=`<circle r="17" fill="none" stroke="${c[0]}" stroke-width="1.5"/>`;
+      for(let i=0;i<6;i++)h+=`<path transform="rotate(${i*60})" d="M0 0 q6 -8 0 -14" fill="none" stroke="${c[0]}" stroke-width="1.5"/>`;
+      return h;
+    }
+  }
+  return '';
+}
+// Вся неподвижная часть доски. pre — префикс id, чтобы превью в настройках не путались с основной доской.
+function boardSVG(key,pre,G0){
+  const B=BOARDS[key]||BOARDS.classic,g=GEOS[G0||GEO];
+  let d=`<defs>${grainFilter(pre+'gr',B.grain)}${grad(pre+'fr',B.frame,1,1)}${grad(pre+'fd',B.field,1,0)}`
+    +`${grad(pre+'pa',B.ptA.slice(0,2).length>1?B.ptA.slice(0,2):[B.ptA[0],B.ptA[0]],0,1)}${grad(pre+'pb',B.ptB.slice(0,2).length>1?B.ptB.slice(0,2):[B.ptB[0],B.ptB[0]],0,1)}</defs>`;
+  let h=d;
+  const [vx,vy,vw,vh]=g.vb;
+  h+=`<rect x="${vx}" y="${vy}" width="${vw}" height="${vh}" rx="22" fill="url(#${pre}fr)" filter="url(#${pre}gr)"/>`;
+  h+=`<rect x="${vx+3}" y="${vy+3}" width="${vw-6}" height="${vh-6}" rx="20" fill="none" stroke="rgba(255,230,190,.2)" stroke-width="2"/>`;
+  for(const x of [40,490]){
+    h+=`<rect x="${x-4}" y="36" width="398" height="648" rx="5" fill="#000" opacity=".35"/>`;
+    h+=`<rect x="${x}" y="40" width="390" height="640" fill="url(#${pre}fd)" filter="url(#${pre}gr)"/>`;
+  }
+  for(const [mx] of [[235],[685]])if(B.med)h+=`<g transform="translate(${mx},360)">${medallion(B)}</g>`;
   for(let a=0;a<24;a++){
     const top=isTop(a);
     let col;if(a<=5)col=5-a;else if(a<=11)col=11-a;else if(a<=17)col=a-12;else col=a-18;
-    const dark=(col+(top?0:1))%2===0;
-    const fill=dark?(top?'ptD':'ptDb'):(top?'ptL':'ptLb');
-    h+=`<polygon points="${triPts(a)}" fill="url(#${fill})" stroke="rgba(40,20,5,.35)" stroke-width="1"/>`;
+    const alt=(col+(top?0:1))%2===0,x0=colX(a)-PW/2;
+    h+=`<g transform="translate(${x0},${top?40:680})${top?'':' scale(1,-1)'}">${pointShape(B,pre,top?col:5-col,alt)}</g>`;
   }
-  h+=`<rect x="430" y="40" width="60" height="640" fill="url(#frameG)" filter="url(#grain)"/>`;
-  h+=`<line x1="460" y1="44" x2="460" y2="676" stroke="rgba(0,0,0,.35)" stroke-width="2"/>`;
-  h+=`<rect x="900" y="40" width="80" height="640" rx="6" fill="#2a1408" filter="url(#inset)"/>`;
-  h+=`<rect x="-60" y="40" width="80" height="640" rx="6" fill="#2a1408" filter="url(#inset)"/>`;
-  h+=`<text x="940" y="700" text-anchor="middle" class="lbl">ваш дом</text>`;
-  h+=`<text x="-20" y="27" text-anchor="middle" class="lbl">компьютер</text>`;
-  if(settings.numbers){
+  if(B.scallop){ // фигурный край вдоль верхнего и нижнего бортика поля
     for(let a=0;a<24;a++){
-      const y=isTop(a)?27:703;
-      h+=`<text x="${colX(a)}" y="${y}" text-anchor="middle" class="lbl">${a+1}</text>`;
+      const x0=colX(a)-PW/2,top=isTop(a);
+      h+=`<path transform="translate(${x0},${top?40:680})${top?'':' scale(1,-1)'}" d="M0 0 H65 V5 A32.5 13 0 0 1 0 5 Z" fill="${B.scallop}" stroke="rgba(0,0,0,.25)" stroke-width="1"/>`;
     }
   }
-  $('static').innerHTML=h;
+  h+=`<rect x="430" y="40" width="60" height="640" fill="url(#${pre}fr)" filter="url(#${pre}gr)"/>`;
+  h+=`<line x1="460" y1="44" x2="460" y2="676" stroke="rgba(0,0,0,.35)" stroke-width="2"/>`;
+  for(const [x,y,w,hh] of g.trays)h+=`<rect x="${x}" y="${y}" width="${w}" height="${hh}" rx="6" fill="${B.tray}" filter="url(#inset)"/>`;
+  {const [x1,y1,a1]=g.lblMe,[x2,y2,a2]=g.lblAi;
+  h+=`<text x="${x1}" y="${y1}" text-anchor="${a1}" class="lbl" style="fill:${B.lbl}">ваш дом</text>`;
+  h+=`<text x="${x2}" y="${y2}" text-anchor="${a2}" class="lbl" style="fill:${B.lbl}">компьютер</text>`;}
+  if(settings.numbers&&pre==='b'){
+    for(let a=0;a<24;a++)h+=`<text x="${colX(a)}" y="${isTop(a)?27:703}" text-anchor="middle" class="lbl" style="fill:${B.lbl}">${a+1}</text>`;
+  }
+  return h;
+}
+
+// ---- Шашки ----
+// Каждая шашка — группа в <defs> с id `${pre}ck0` (ваша, светлая) и `${pre}ck1` (компьютера, тёмная), радиус 29.
+const CHECKERS={
+  classic:{name:'Классика',slab:[['#fffaf0','#cdb98f'],['#6a4434','#1a0c06']]},
+  wood:{name:'Дерево',slab:[['#ecc193','#c58856'],['#5c4d42','#2a221d']]},
+  carved:{name:'Резные',slab:[['#efdcbc','#c99560'],['#5a4232','#26160c']]},
+  metal:{name:'Металл',slab:[['#f4f4f4','#8f8f8f'],['#e8c76c','#7a5a1c']]},
+  pearl:{name:'Перламутр',slab:[['#fffdf8','#d9d6e2'],['#3a3c40','#050506']]},
+  stone:{name:'Обсидиан',slab:[['#b45c32','#5e2410'],['#4a4a4e','#050505']]},
+  flower:{name:'Цветок',slab:[['#ecd2a8','#c49a66'],['#6a4630','#2e1d12']]}
+};
+const rad=(id,c,cx='40%',cy='35%',r='70%')=>`<radialGradient id="${id}" cx="${cx}" cy="${cy}" r="${r}">${c.map((v,i)=>`<stop offset="${i/(c.length-1)}" stop-color="${v}"/>`).join('')}</radialGradient>`;
+function checkerFace(key,pre,p){
+  const id=pre+'c'+p+'_';
+  const L=p===0;
+  switch(key){
+    case 'classic':
+      return [rad(id+'g',L?['#fffdf6','#eee2c6','#c6b086']:['#7a5242','#341c12','#140904']),
+        `<circle r="29" fill="url(#${id}g)" stroke="${L?'#a08c64':'#0a0402'}" stroke-width="1.5"/><circle r="21" fill="none" stroke="${L?'rgba(120,90,40,.28)':'rgba(255,220,180,.18)'}" stroke-width="2"/><circle r="11" fill="none" stroke="${L?'rgba(120,90,40,.2)':'rgba(255,220,180,.12)'}" stroke-width="1.5"/>`];
+    case 'wood': {
+      const col=L?['#f0c597','#dba673','#c08250']:['#6a5a4d','#463a31','#2a221d'];
+      return [rad(id+'g',col,'45%','40%','75%')+grainFilter(id+'gr',{f:'0.02 0.18',c:L?[.45,.25,.1]:[.08,.06,.05],k:1.3}),
+        `<circle r="29" fill="url(#${id}g)" filter="url(#${id}gr)" stroke="${L?'#a8703f':'#1a1410'}" stroke-width="1.5"/><circle r="26" fill="none" stroke="${L?'rgba(255,240,215,.45)':'rgba(255,255,255,.1)'}" stroke-width="1.5"/>`];
+    }
+    case 'carved': {
+      const rim=L?'#efdcbc':'#5a4232',inner=L?['#e0ad74','#c48448','#a96c34']:['#4a2e1c','#33200f','#1f1309'],ln=L?'#8b5226':'#0e0804',hl=L?'rgba(255,240,210,.7)':'rgba(255,200,150,.18)';
+      let h=`<circle r="29" fill="${rim}" stroke="${L?'#b08a5a':'#1e140c'}" stroke-width="1.5"/><circle r="23.5" fill="url(#${id}g)" stroke="${ln}" stroke-width="1.2"/>`
+        +`<circle r="23.5" fill="none" stroke="${hl}" stroke-width="1" transform="translate(.8,.8)"/>`;
+      for(let i=0;i<10;i++)h+=`<path transform="rotate(${i*36})" d="M0 -20 c4 -1 5 3 2 4 c-3 1 -4 -2 -2 -4" fill="none" stroke="${ln}" stroke-width="1"/>`;
+      h+=`<circle r="12.5" fill="none" stroke="${ln}" stroke-width="1.2"/>`;
+      for(let i=0;i<16;i++)h+=`<path transform="rotate(${i*22.5})" d="M0 -3.5 L0 -12" stroke="${ln}" stroke-width="1"/>`;
+      return [rad(id+'g',inner,'45%','40%','75%'),h+`<circle r="2.6" fill="${ln}"/>`];
+    }
+    case 'metal': {
+      const rim=L?['#ffffff','#d6d6d6','#8a8a8a']:['#fff0b0','#d9b04d','#7a5418'],inner=L?['#e6e6e6','#b5b5b5']:['#4a3218','#24170a'],orn=L?'#7a7a7a':'#e8c060';
+      const star=Array.from({length:16},(_,i)=>{const r=i%2?7:17,a=i*Math.PI/8;return `${(Math.sin(a)*r).toFixed(1)},${(-Math.cos(a)*r).toFixed(1)}`;}).join(' ');
+      return [grad(id+'r',rim,1,1)+rad(id+'i',inner,'45%','40%','75%'),
+        `<circle r="29" fill="url(#${id}r)" stroke="${L?'#6c6c6c':'#5a3c10'}" stroke-width="1.2"/><circle r="25.5" fill="none" stroke="${L?'#9a9a9a':'#8a6420'}" stroke-width="2.2" stroke-dasharray="2.2 1.6"/>`
+        +`<circle r="21.5" fill="url(#${id}i)" stroke="${L?'#8a8a8a':'#6a4a14'}" stroke-width="1"/><polygon points="${star}" fill="${orn}" opacity=".9"/><circle r="3.5" fill="${L?'#e6e6e6':'#4a3218'}" stroke="${orn}" stroke-width="1.2"/>`];
+    }
+    case 'pearl': {
+      const gold=['#fff3c4','#e4bd55','#9c7020'];
+      const inner=L?['#ffffff','#f4eef8','#e2ecf2','#f3e8ea','#e8e4f0']:['#4a4d52','#16171a','#030304'];
+      return [grad(id+'r',gold,1,1)+rad(id+'i',inner,'38%','32%','80%'),
+        `<circle r="29" fill="url(#${id}r)" stroke="#7a5414" stroke-width="1.2"/><circle r="22.5" fill="url(#${id}i)" stroke="#8a6418" stroke-width="1.2"/>`
+        +`<path d="M-15 -8 Q-8 -18 6 -17" fill="none" stroke="rgba(255,255,255,${L?.9:.45})" stroke-width="3" stroke-linecap="round"/>`
+        +(L?`<ellipse cx="6" cy="6" rx="10" ry="6" fill="rgba(180,210,235,.35)" transform="rotate(-30)"/>`:'')];
+    }
+    case 'stone': {
+      const body=L?['#c96a3c','#8a3a18','#4a1606']:['#4a4a4e','#18181a','#030303'];
+      let h=`<circle r="29" fill="url(#${id}g)" stroke="${L?'#3a1406':'#000'}" stroke-width="1.2"/>`;
+      if(L)[[-9,6,5,3],[8,-4,4,2.2],[2,12,3,2],[12,9,2.5,1.6],[-4,-12,3,1.8]].forEach(([x,y,rx,ry])=>{h+=`<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="#1a0804" opacity=".55"/>`;});
+      h+=`<circle r="24" fill="none" stroke="rgba(255,255,255,${L?.22:.18})" stroke-width="1.5"/>`
+        +`<path d="M-19 -6 Q-14 -20 2 -22" fill="none" stroke="rgba(255,255,255,.75)" stroke-width="3.5" stroke-linecap="round"/>`
+        +`<ellipse cx="-8" cy="-13" rx="7" ry="3" fill="rgba(255,255,255,.35)" transform="rotate(-25)"/>`;
+      return [rad(id+'g',body,'38%','32%','80%'),h];
+    }
+    case 'flower': {
+      const body=L?['#f0d6ac','#dcb680','#b98e58']:['#7a5038','#52331f','#2e1d12'],ln=L?'#8e6236':'#1a0f08',hl=L?'rgba(255,245,225,.6)':'rgba(255,210,170,.15)';
+      let h=`<circle r="29" fill="url(#${id}g)" stroke="${L?'#a2774a':'#1a100a'}" stroke-width="1.5"/><circle r="22" fill="none" stroke="${ln}" stroke-width="1.5"/><circle r="22" fill="none" stroke="${hl}" stroke-width="1" transform="translate(.8,.8)"/>`;
+      for(let i=0;i<6;i++){const a=i*Math.PI/3;h+=`<circle cx="${(Math.sin(a)*7.5).toFixed(2)}" cy="${(-Math.cos(a)*7.5).toFixed(2)}" r="7.5" fill="none" stroke="${ln}" stroke-width="1.3"/>`;}
+      return [rad(id+'g',body,'45%','40%','75%'),h+`<circle r="15" fill="none" stroke="${ln}" stroke-width="1.2"/>`];
+    }
+  }
+  return checkerFace('classic',pre,p);
+}
+function checkerDefs(key,pre){
+  const C=CHECKERS[key]?key:'classic';let defs='',groups='';
+  for(const p of [0,1]){const [d,g]=checkerFace(C,pre,p);defs+=d;groups+=`<g id="${pre}ck${p}">${g}</g>`;}
+  const sl=CHECKERS[C].slab;
+  return `<defs>${defs}${grad(pre+'sl0',sl[0],0,1)}${grad(pre+'sl1',sl[1],0,1)}${groups}</defs>`;
+}
+function buildStatic(){
+  $('static').innerHTML=COMMON_DEFS+boardSVG(settings.board,'b')+checkerDefs(settings.checkers,'m');
 }
 function checkerSVG(p,x,y){
-  return `<g transform="translate(${x.toFixed(1)},${y.toFixed(1)})" filter="url(#sh)"><circle r="29" fill="url(#${p?'cB':'cW'})" stroke="${p?'#0a0402':'#a08c64'}" stroke-width="1.5"/><circle r="21" fill="none" stroke="${p?'rgba(255,220,180,.18)':'rgba(120,90,40,.28)'}" stroke-width="2"/><circle r="11" fill="none" stroke="${p?'rgba(255,220,180,.12)':'rgba(120,90,40,.2)'}" stroke-width="1.5"/></g>`;
+  return `<use href="#mck${p}" transform="translate(${x.toFixed(1)},${y.toFixed(1)})" filter="url(#sh)"/>`;
 }
-const slabSVG=(p,x,y)=>`<rect x="${x-30}" y="${y-6}" width="60" height="12" rx="3" fill="url(#${p?'slB':'slW'})" stroke="${p?'#000':'#8c7a58'}" stroke-width="1"/>`;
+const slabSVG=(p,x,y)=>`<rect ${geo().slabV?`x="${x-6}" y="${y-27}" width="12" height="54"`:`x="${x-30}" y="${y-6}" width="60" height="12"`} rx="3" fill="url(#msl${p})" stroke="rgba(0,0,0,.6)" stroke-width="1"/>`;
+// Превью для окна «Оформление»
+function boardPreview(key){
+  return `<svg viewBox="-80 0 1080 720" class="pv">${boardSVG(key,'pv'+key,'side')}</svg>`;
+}
+function checkerPreview(key){
+  const pre='pc'+key;
+  return `<svg viewBox="-36 -34 140 68" class="pv">${checkerDefs(key,pre)}<use href="#${pre}ck0" x="0" y="0"/><use href="#${pre}ck1" x="68" y="0"/></svg>`;
+}
 const PIPS={1:[[0,0]],2:[[-1,-1],[1,1]],3:[[-1,-1],[0,0],[1,1]],4:[[-1,-1],[1,-1],[-1,1],[1,1]],5:[[-1,-1],[1,-1],[0,0],[-1,1],[1,1]],6:[[-1,-1],[1,-1],[-1,0],[1,0],[-1,1],[1,1]]};
 /* ---------- Кубики ---------- */
 // ===== Настоящий 3D-кубик =====
@@ -661,33 +919,110 @@ function hull(pts){ // выпуклая оболочка (монотонная �
   for(const p of pts.reverse()){while(up.length>1&&cr(up[up.length-2],up[up.length-1],p)<=0)up.pop();up.push(p);}
   return lo.slice(0,-1).concat(up.slice(0,-1));
 }
-const DIE_COL={
-  light:{face:[255,249,234],edge:[214,196,160],pip:[28,15,7]},
-  dark:{face:[120,70,46],edge:[62,34,20],pip:[236,226,204]}
+// ---- Стили игральных костей ----
+// У каждого стиля два варианта: ваши кости (light) и кости компьютера (dark).
+// face/edge — цвет граней и скруглённых рёбер; pip — цвет точек; pipType — вид точек;
+// tex — рисунок на гранях; amb/dif — сколько света «рассеянного» и «прямого»; rnd — скругление углов.
+const DV=(o)=>Object.assign({amb:.8,dif:.24,pipType:'dot',rnd:.32},o);
+const DICE={
+  classic:{name:'Классика',
+    light:DV({face:[255,249,234],edge:[214,196,160],pip:[28,15,7]}),
+    dark:DV({face:[120,70,46],edge:[62,34,20],pip:[236,226,204],amb:.62,dif:.45})},
+  ivory:{name:'Слоновая кость',
+    light:DV({face:[246,238,210],edge:[214,200,160],pip:[22,22,26],rnd:.5}),
+    dark:DV({face:[236,226,196],edge:[200,186,148],pip:[22,22,26],rnd:.5,amb:.74,dif:.3})},
+  obsidian:{name:'Обсидиан',
+    light:DV({face:[150,68,42],edge:[96,40,22],pip:[236,238,240],pipType:'inlay',tex:'spots',amb:.66,dif:.42,gloss:true}),
+    dark:DV({face:[34,32,34],edge:[14,12,14],pip:[226,230,234],pipType:'inlay',amb:.6,dif:.5,gloss:true})},
+  titanium:{name:'Титан',
+    light:DV({face:[168,168,170],edge:[118,118,122],pip:[40,110,235],pipType:'glow',tex:'brushed',amb:.7,dif:.38}),
+    dark:DV({face:[96,96,100],edge:[60,60,64],pip:[40,110,235],pipType:'glow',tex:'brushed',amb:.66,dif:.42})},
+  ebony:{name:'Эбен',
+    light:DV({face:[48,42,40],edge:[24,20,18],pip:[232,238,242],pipType:'pearl',amb:.62,dif:.5,rnd:.14}),
+    dark:DV({face:[26,24,24],edge:[10,10,10],pip:[232,238,242],pipType:'pearl',amb:.6,dif:.5,rnd:.14})},
+  brass:{name:'Латунь',
+    light:DV({face:[214,172,86],edge:[150,112,44],pip:[70,52,20],pipType:'hole',tex:'ring',amb:.66,dif:.42,rnd:.24,gloss:true}),
+    dark:DV({face:[150,110,52],edge:[96,68,28],pip:[48,34,12],pipType:'hole',tex:'ring',amb:.62,dif:.46,rnd:.24})},
+  olive:{name:'Олива',
+    light:DV({face:[250,250,248],edge:[200,196,190],pip:[16,16,18],tex:'olive',rnd:.12,gloss:true}),
+    dark:DV({face:[244,242,238],edge:[190,184,176],pip:[16,16,18],tex:'olive',rnd:.12,amb:.74,dif:.3})},
+  amber:{name:'Янтарь',
+    light:DV({face:[196,96,18],edge:[120,50,8],pip:[226,228,232],pipType:'silver',tex:'amber',amb:.7,dif:.4,rnd:.4,gloss:true,alpha:.94}),
+    dark:DV({face:[120,46,10],edge:[70,24,4],pip:[226,228,232],pipType:'silver',tex:'amber',amb:.66,dif:.44,rnd:.4,gloss:true,alpha:.94})},
+  opal:{name:'Опал',
+    light:DV({face:[150,72,28],edge:[96,42,14],pip:[240,240,236],pipType:'opal',tex:'grain',amb:.66,dif:.42,rnd:.16}),
+    dark:DV({face:[30,28,28],edge:[12,12,12],pip:[120,220,200],pipType:'opal',amb:.6,dif:.5,rnd:.16})}
 };
 const shade=(c,k)=>`rgb(${c.map(v=>Math.max(0,Math.min(255,Math.round(v*k)))).join(',')})`;
 const PIP_POS={1:[[0,0]],2:[[-1,-1],[1,1]],3:[[-1,-1],[0,0],[1,1]],4:[[-1,-1],[1,-1],[-1,1],[1,1]],5:[[-1,-1],[1,-1],[0,0],[-1,1],[1,1]],6:[[-1,-1],[1,-1],[-1,0],[1,0],[-1,1],[1,1]]};
-// Рисует кубик с центром (x,y) экрана, ориентацией R, половиной ребра hs
+// Псевдослучайные, но постоянные для каждой грани числа — чтобы узор не «мигал» между кадрами
+const seeded=(n,i)=>{const x=Math.sin(n*127.1+i*311.7)*43758.5453;return x-Math.floor(x);};
+function faceTexture(C,val,k){
+  switch(C.tex){
+    case 'spots': { let h='';for(let i=0;i<6;i++){const x=seeded(val,i)*1.6-.8,y=seeded(val,i+9)*1.6-.8;h+=`<ellipse cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" rx="${(.1+seeded(val,i+3)*.18).toFixed(2)}" ry="${(.05+seeded(val,i+5)*.1).toFixed(2)}" transform="rotate(${Math.round(seeded(val,i+7)*180)} ${x.toFixed(2)} ${y.toFixed(2)})" fill="#1a0602" opacity=".35"/>`;}return h; }
+    case 'amber': { let h='';for(let i=0;i<9;i++){const x=seeded(val,i)*1.6-.8,y=seeded(val,i+11)*1.6-.8;h+=`<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${(.05+seeded(val,i+4)*.14).toFixed(2)}" fill="${i%3?'#3a1404':'#ffb648'}" opacity="${i%3?.4:.35}"/>`;}return h; }
+    case 'grain': { let h='';for(let i=0;i<7;i++){const y=-.85+i*.28+seeded(val,i)*.1;h+=`<path d="M-.95 ${y.toFixed(2)} Q0 ${(y+(seeded(val,i+2)-.5)*.3).toFixed(2)} .95 ${(y+.05).toFixed(2)}" fill="none" stroke="#2a0e02" stroke-width=".05" opacity=".45"/>`;}return h; }
+    case 'brushed': { let h='';for(let i=0;i<10;i++){const y=-.9+i*.2;h+=`<path d="M-.95 ${y.toFixed(2)} H.95" stroke="#fff" stroke-width=".02" opacity="${(.06+seeded(val,i)*.1).toFixed(2)}"/>`;}return h; }
+    case 'ring':
+      return `<circle r=".8" fill="none" stroke="${shade([70,48,14],k)}" stroke-width=".07"/><circle r=".7" fill="none" stroke="${shade([90,64,20],k)}" stroke-width=".05" stroke-dasharray=".06 .05"/>`
+        +`<path d="M-.5 0 L0 -.5 L.5 0 L0 .5 Z" fill="none" stroke="${shade([90,64,20],k)}" stroke-width=".04" opacity=".7"/>`;
+    case 'olive': { // заливка смолой: часть грани — оливковое дерево с прожилками
+      const cut=[['M-.95 -.95 L.4 -.95 L-.95 .5 Z'],['M.95 .95 L-.3 .95 L.95 -.4 Z'],['M-.95 .1 L.95 .7 L.95 .95 L-.95 .95 Z'],['M-.95 -.95 H.95 V-.2 L-.95 .3 Z'],['M-.95 -.95 L-.1 -.95 L.3 .95 L-.95 .95 Z'],['M.95 -.95 L.95 .95 L.2 .95 L.5 -.95 Z']][val-1][0];
+      return `<path d="${cut}" fill="${shade([176,124,70],k)}"/><g clip-path="none" opacity=".45"><path d="${cut}" fill="none" stroke="${shade([110,70,32],k)}" stroke-width=".04"/></g>`
+        +`<path d="${cut}" fill="url(#oliveG)" opacity=".55"/>`;
+    }
+  }
+  return '';
+}
+function pipSVG(C,cx,cy,k,ox,oy){
+  const r=.19;
+  switch(C.pipType){
+    case 'inlay': case 'pearl':
+      return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${shade(C.pip,Math.min(1.05,k))}"/>`
+        +(C.pipType==='pearl'?`<circle cx="${cx}" cy="${cy}" r="${r*.75}" fill="url(#pearlG)" opacity=".75"/>`:'')
+        +`<circle cx="${(cx-ox*.06).toFixed(3)}" cy="${(cy-oy*.06).toFixed(3)}" r="${r*.4}" fill="#fff" opacity=".55"/>`;
+    case 'glow':
+      return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${shade([16,40,110],1)}"/><circle cx="${(cx+ox*.05).toFixed(3)}" cy="${(cy+oy*.05).toFixed(3)}" r="${r*.7}" fill="${shade(C.pip,k)}"/><circle cx="${(cx+ox*.09).toFixed(3)}" cy="${(cy+oy*.09).toFixed(3)}" r="${r*.3}" fill="#9fd0ff" opacity=".8"/>`;
+    case 'hole':
+      return `<circle cx="${cx}" cy="${cy}" r="${r*.85}" fill="${shade(C.pip,k)}"/><circle cx="${(cx+ox*.05).toFixed(3)}" cy="${(cy+oy*.05).toFixed(3)}" r="${r*.55}" fill="#000" opacity=".5"/>`;
+    case 'silver':
+      return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#silverG)"/><circle cx="${(cx-ox*.07).toFixed(3)}" cy="${(cy-oy*.07).toFixed(3)}" r="${r*.35}" fill="#fff" opacity=".9"/>`;
+    case 'opal':
+      return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#opalG)"/><circle cx="${(cx-ox*.06).toFixed(3)}" cy="${(cy-oy*.06).toFixed(3)}" r="${r*.3}" fill="#fff" opacity=".6"/>`;
+  }
+  // обычная вдавленная точка: тёмная лунка со светлой стенкой
+  return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${shade(C.pip,C.pip[0]>128?k:1)}"/><circle cx="${(cx+ox*.035).toFixed(3)}" cy="${(cy+oy*.045).toFixed(3)}" r=".13" fill="${shade(C.pip,C.pip[0]>128?k*1.1:2.4)}" opacity=".35"/>`;
+}
+// Рисует кубик с центром (x,y) экрана, ориентацией R, половиной ребра hs. style — ключ стиля костей.
 function dieCube(x,y,R,dark,o){
   o=o||{};
-  const hs=23*(o.sc||1),op=o.op===undefined?1:o.op,C=dark?DIE_COL.dark:DIE_COL.light;
+  const S=DICE[o.style||settings.dice]||DICE.classic,C=dark?S.dark:S.light;
+  const hs=23*(o.sc||1),op=(o.op===undefined?1:o.op)*(C.alpha||1);
   // силуэт с закруглёнными рёбрами — заполняет стыки между гранями
   const pts=hull(CUBE_V.map(c=>proj(mvec(R,c)).map(v=>v*hs*0.955)));
   let h=`<g transform="translate(${x.toFixed(1)},${y.toFixed(1)})" opacity="${op}">`
-    +`<polygon points="${pts.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ')}" fill="${shade(C.edge,1)}" stroke="${shade(C.edge,1)}" stroke-width="${(hs*0.1).toFixed(1)}" stroke-linejoin="round"/>`;
+    +`<polygon points="${pts.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ')}" fill="${shade(C.edge,1)}" stroke="${shade(C.edge,1)}" stroke-width="${(hs*(0.06+C.rnd*0.12)).toFixed(1)}" stroke-linejoin="round"/>`;
   for(const f of FACES){
     const N=mvec(R,f.n),vis=dot(N,VIEW);
     if(vis<=0.03)continue;
     const U=proj(mvec(R,f.u)).map(v=>v*hs),W=proj(mvec(R,f.v)).map(v=>v*hs),Cc=proj(N).map(v=>v*hs);
-    const light=(dark?0.62:0.8)+(dark?0.45:0.24)*Math.max(0,dot(N,LIGHT));
+    const k=C.amb+C.dif*Math.max(0,dot(N,LIGHT));
     const m=`matrix(${U[0].toFixed(3)},${U[1].toFixed(3)},${W[0].toFixed(3)},${W[1].toFixed(3)},${Cc[0].toFixed(2)},${Cc[1].toFixed(2)})`;
-    // плавно гасим грань, которая только появляется из-за ребра
-    const fo=Math.min(1,vis/0.12);
-    h+=`<g transform="${m}" opacity="${fo.toFixed(3)}"><rect x="-.95" y="-.95" width="1.9" height="1.9" rx=".32" fill="${shade(C.face,light)}"/>`;
-    for(const [i,j] of PIP_POS[f.val])h+=`<circle cx="${i*.5}" cy="${j*.5}" r=".19" fill="${shade(C.pip,dark?light:1)}"/><circle cx="${(i*.5+.035).toFixed(3)}" cy="${(j*.5+.045).toFixed(3)}" r=".13" fill="${shade(C.pip,dark?light*1.1:2.4)}" opacity=".35"/>`;
+    // направление «к свету» в координатах грани — для бликов на точках
+    const lu=dot(mvec(R,f.u),LIGHT),lv=dot(mvec(R,f.v),LIGHT),ln=Math.hypot(lu,lv)||1,ox=-lu/ln,oy=-lv/ln;
+    const fo=Math.min(1,vis/0.12); // плавно гасим грань, которая только появляется из-за ребра
+    h+=`<g transform="${m}" opacity="${fo.toFixed(3)}"><rect x="-.95" y="-.95" width="1.9" height="1.9" rx="${C.rnd}" fill="${shade(C.face,k)}"/>`;
+    h+=faceTexture(C,f.val,k);
+    if(C.gloss&&vis>0.6)h+=`<path d="M-.75 -.5 Q-.7 -.75 -.4 -.8" fill="none" stroke="#fff" stroke-width=".07" stroke-linecap="round" opacity=".45"/>`;
+    for(const [i,j] of PIP_POS[f.val])h+=pipSVG(C,i*.5,j*.5,k,ox,oy);
     h+='</g>';
   }
   return h+'</g>';
+}
+// Превью костей для страницы «Оформление»: ваша и компьютера
+function dicePreview(key){
+  const R1=mmul(rotAxis([1,0,0],-14),restPose(5,-28)),R2=mmul(rotAxis([1,0,0],-14),restPose(3,22));
+  return `<svg viewBox="-34 -34 132 70" class="pv">${dieCube(0,0,R1,false,{style:key})}${dieCube(64,0,R2,true,{style:key})}</svg>`;
 }
 const restPose=(v,yaw)=>mmul(rotZ(yaw),UPRIGHT[v]);
 // Тень на доске: смещается и бледнеет, когда кубик в воздухе
@@ -743,8 +1078,9 @@ function throwDice(specs){
   sfx('dice');
   const H0=0.7; // высота «в руке»
   return new Promise(res=>{
-    const t0=performance.now();
+    const t0=performance.now(),tok=G.token;
     function frame(now){
+      if(tok!==G.token){fx.innerHTML='';res();return;} // партию перезапустили — бросок отменяется
       let h='',done=true;const el=now-t0;
       for(const d of dice){
         const to=d.s.to;
@@ -823,7 +1159,7 @@ function render(opt){
   const ghost=(x,y,over)=>`<circle cx="${x}" cy="${y}" r="${over?31:26}" fill="#fff3b0" fill-opacity="${over?.3:.45}" stroke="#d99a00" stroke-width="3.5" stroke-dasharray="7 5"/>`;
   if(humanMove&&G.sel!==null&&settings.hints){
     for(const r of G.targets.keys()){
-      if(r>=24){const q=offPos(0,s.off[0]);h+=ghost(q.x,Math.min(q.y,650),false);}
+      if(r>=24){const q=offPos(0,s.off[0]);h+=ghost(q.x,q.y,false);}
       else{const a=R2A[V][0][r],n=own(s,a,0),pos=slotPos(a,n,n+1);h+=ghost(pos.x,pos.y,n>=5);}
     }
   }
@@ -833,10 +1169,10 @@ function render(opt){
     h+=`<rect data-k="pt" data-a="${a}" x="${x}" y="${isTop(a)?40:370}" width="${PW}" height="310" fill="transparent"/>`;
   }
   h+=`<rect data-k="bar" data-a="0" x="430" y="40" width="60" height="640" fill="transparent"/>`;
-  h+=`<rect data-k="off" data-a="0" x="900" y="40" width="80" height="640" fill="transparent"/>`;
+  {const [x,y,w,hh]=geo().offHit;h+=`<rect data-k="off" data-a="0" x="${x}" y="${y}" width="${w}" height="${hh}" fill="transparent"/>`;}
   // ждём броска: вся доска — одна большая зона нажатия
   if(G.phase==='roll'&&G.turn===0&&settings.rollMode==='manual')
-    h+=`<rect data-k="roll" data-a="0" x="-80" y="0" width="1080" height="720" fill="transparent" style="cursor:pointer"/>`;
+    {const [x,y,w,hh]=geo().vb;h+=`<rect data-k="roll" data-a="0" x="${x}" y="${y}" width="${w}" height="${hh}" fill="transparent" style="cursor:pointer"/>`;}
   $('layer').innerHTML=h;
   updateUI();
 }
@@ -921,7 +1257,7 @@ function startTurn(p){
 // tapX — куда нажал игрок, иначе случайная точка над выбранной половиной.
 function throwOrigin(side,half,tapX){
   const x=tapX!==undefined?Math.max(60,Math.min(860,tapX)):(half?685:235)+(Math.random()-.5)*220;
-  return {x,y:side===0?700:20};
+  return {x,y:geo().originY[side]};
 }
 // half: 0 — левая половина, 1 — правая; если не задана, выбирается случайно
 async function doRoll(half,tapX){
@@ -1144,6 +1480,7 @@ $('mNew').onclick=()=>{audioUnlock();newGame();};
 $('mContinue').onclick=()=>{if(G.phase==='over'&&!match.over){audioUnlock();newGame(true);}else closeAll();};
 $('mSettings').onclick=()=>openSub('ovSettings');
 $('mStats').onclick=()=>openSub('ovStats');
+$('mStyle').onclick=()=>openSub('ovStyle');
 $('mRules').onclick=()=>openSub('ovRules');
 $('overNew').onclick=()=>{audioUnlock();newGame(true);};
 $('overMenu').onclick=()=>openMenu();
@@ -1169,6 +1506,25 @@ function syncControls(){
     seg.querySelectorAll('button').forEach(b=>b.classList.toggle('on',obj[seg.dataset.key]===b.dataset.v));
   });
   document.querySelectorAll('.chk input[data-key]').forEach(i=>i.checked=!!settings[i.dataset.key]);
+  buildStylePickers();
+  document.querySelectorAll('#boardStyles button').forEach(b=>b.classList.toggle('on',b.dataset.v===settings.board));
+  document.querySelectorAll('#checkerStyles button').forEach(b=>b.classList.toggle('on',b.dataset.v===settings.checkers));
+  document.querySelectorAll('#diceStyles button').forEach(b=>b.classList.toggle('on',b.dataset.v===settings.dice));
+}
+// Плитки выбора стиля с превью для страницы «Оформление» — строятся один раз
+function buildStylePickers(){
+  if($('boardStyles').childElementCount)return;
+  const make=(box,list,key,preview)=>{
+    for(const k of Object.keys(list)){
+      const b=document.createElement('button');b.dataset.v=k;
+      b.innerHTML=preview(k)+`<span>${list[k].name}</span>`;
+      b.onclick=()=>{settings[key]=k;applySettings();syncControls();};
+      box.appendChild(b);
+    }
+  };
+  make($('boardStyles'),BOARDS,'board',boardPreview);
+  make($('checkerStyles'),CHECKERS,'checkers',checkerPreview);
+  make($('diceStyles'),DICE,'dice',dicePreview);
 }
 document.querySelectorAll('.seg[data-key]').forEach(seg=>{
   seg.querySelectorAll('button').forEach(b=>b.onclick=()=>{
@@ -1185,7 +1541,7 @@ document.querySelectorAll('.chk input[data-key]').forEach(i=>i.onchange=()=>{set
 function applySettings(){
   LS.set('nardy.settings',settings);
   if(settings.sound)audioUnlock();
-  buildStatic();render();
+  applyOrientation();buildStatic();render();
   if(G.on&&G.phase==='roll'&&G.turn===0&&settings.rollMode==='auto')later(doRoll,300);
   if(G.on&&G.phase==='confirm'&&!settings.confirmMove)later(endTurn,200);
 }
@@ -1194,12 +1550,21 @@ function applySettings(){
 // Сначала пробуем настоящий поворот (полный экран + блокировка ориентации, работает в Android).
 // Если браузер не умеет (iPhone), поворачиваем саму страницу на 90° через CSS.
 let rotWanted=!!LS.get('nardy.rotate',false);
+const FONT_SCALE={s:0.9,m:1,l:1.15,xl:1.3};
+const ROTATE_FONT_BOOST=1.15; // при повороте телефона шрифт ещё на 15% крупнее
 function applyOrientation(){
   const portrait=innerHeight>innerWidth;
   const rot=rotWanted&&portrait;
   const root=document.documentElement;
+  const effH=rot?innerWidth:innerHeight;
+  const landscape=rot||!portrait;
+  const land=landscape&&effH<560; // телефон горизонтально (настоящий поворот или CSS)
   root.classList.toggle('rot',rot);
-  root.classList.toggle('compact',(rot?innerWidth:innerHeight)<560);
+  root.classList.toggle('compact',effH<560);
+  root.classList.toggle('land',land);
+  root.style.setProperty('--fs',((FONT_SCALE[settings.fontSize]||1)*(land?ROTATE_FONT_BOOST:1)).toFixed(3));
+  // горизонтально — широкая доска с лотками по бокам, вертикально — узкая с лотками сверху и снизу
+  if(setGeo(landscape?'side':'tb')){buildStatic();render();}
   $('btnRotate').textContent=rotWanted?'⟲ Вертикально':'⟳ Повернуть';
 }
 async function toggleRotate(){
