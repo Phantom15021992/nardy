@@ -7,12 +7,42 @@
 <style>
 *{box-sizing:border-box}
 [hidden]{display:none!important}
+/* --appH — высота игровой области, --chrome — сколько занимают шапка и панель снизу */
+:root{--appH:100vh;--rotW:100vh;--chrome:140px}
+@supports (height:100dvh){:root{--appH:100dvh;--rotW:100dvh}}
 html,body{margin:0;height:100%}
 body{
   background:radial-gradient(ellipse at 50% 25%,#4a2e19 0%,#24140a 60%,#110803 100%);
-  color:#f3e3c3;font-family:Georgia,"Times New Roman",serif;
-  display:flex;flex-direction:column;min-height:100vh;overflow-x:hidden;
+  color:#f3e3c3;font-family:Georgia,"Times New Roman",serif;overflow-x:hidden;
 }
+#app{display:flex;flex-direction:column;min-height:var(--appH);width:100%}
+button,.board-wrap{touch-action:manipulation}
+/* Развёрнутый режим: телефон держат горизонтально, а браузер остался в портрете */
+html.rot{--appH:100vw}
+html.rot body{overflow:hidden}
+html.rot #app{position:fixed;top:0;left:0;width:var(--rotW);height:100vw;min-height:0;
+  transform-origin:0 0;transform:translateX(100vw) rotate(90deg);
+  background:radial-gradient(ellipse at 50% 25%,#4a2e19 0%,#24140a 60%,#110803 100%)}
+#btnRotate{display:none}
+@media (pointer:coarse){#btnRotate{display:inline-block}}
+/* Компактная раскладка для низкого экрана (телефон горизонтально) */
+html.compact{--chrome:84px}
+html.compact .topbar{padding:4px 10px;gap:6px;flex-wrap:nowrap}
+html.compact .brand{font-size:18px}
+html.compact .brand small{display:none}
+html.compact .score{font-size:14px;padding:3px 10px}
+html.compact button{font-size:13px;padding:5px 10px}
+html.compact main{padding:0 6px}
+html.compact .controls{padding:3px 10px 5px;gap:8px;flex-wrap:nowrap}
+html.compact .status-box{min-width:0;flex:1;text-align:left;overflow:hidden}
+html.compact #status{font-size:14px;white-space:nowrap}
+html.compact #pips{display:none}
+html.compact .btns{flex-wrap:nowrap}
+html.compact .modal{padding:12px 18px}
+html.compact .modal h2{font-size:22px;margin-bottom:6px}
+html.compact .opt{margin:8px 0}
+html.compact .mbtns{margin-top:10px}
+html.compact .mbtns button{font-size:15px;padding:6px}
 .topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 16px;flex-wrap:wrap}
 .brand{font-size:26px;letter-spacing:1px;color:#f0d9a8;text-shadow:0 2px 0 #000;white-space:nowrap}
 .brand small{font-size:14px;color:#c9a979;margin-left:8px;letter-spacing:0}
@@ -29,7 +59,7 @@ button:active{transform:translateY(1px)}
 button:disabled{opacity:.4;cursor:default;filter:none;transform:none}
 button.primary{background:linear-gradient(#e8bb55,#a8771f);color:#2a1606;font-weight:bold}
 main{flex:1;display:flex;align-items:center;justify-content:center;padding:0 10px;min-height:0}
-.board-wrap{position:relative;width:min(100%,calc((100vh - 140px) * 1.5));aspect-ratio:1080/720;margin:auto}
+.board-wrap{position:relative;width:min(100%,calc((var(--appH) - var(--chrome)) * 1.5));aspect-ratio:1080/720;margin:auto}
 .board-wrap svg{position:absolute;inset:0;width:100%;height:100%;display:block;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
 #dyn{will-change:transform}
 .controls{display:flex;align-items:center;justify-content:center;gap:12px;padding:8px 16px 14px;flex-wrap:wrap}
@@ -45,7 +75,7 @@ main{flex:1;display:flex;align-items:center;justify-content:center;padding:0 10p
 .overlay.show{display:flex}
 .modal{
   background:linear-gradient(#f7ecd2,#e8d4aa);color:#3b2412;border-radius:14px;border:3px solid #6b4020;
-  box-shadow:0 20px 60px rgba(0,0,0,.6);padding:22px 26px;width:min(480px,100%);max-height:92vh;overflow:auto;
+  box-shadow:0 20px 60px rgba(0,0,0,.6);padding:22px 26px;width:min(480px,100%);max-height:calc(var(--appH) - 24px);overflow:auto;
 }
 .modal h2{margin:0 0 14px;text-align:center;font-size:28px;letter-spacing:1px}
 .modal h3{margin:16px 0 6px;font-size:18px}
@@ -54,7 +84,7 @@ main{flex:1;display:flex;align-items:center;justify-content:center;padding:0 10p
 .opt{margin:14px 0}
 .opt .label{font-weight:bold;margin-bottom:6px}
 .seg{display:flex;gap:6px;flex-wrap:wrap}
-.seg button{flex:1;min-width:90px;background:linear-gradient(#f1e3c2,#d7bf8e);color:#3b2412;box-shadow:none;border:1px solid #a07c48}
+.seg button{flex:1;min-width:52px;background:linear-gradient(#f1e3c2,#d7bf8e);color:#3b2412;box-shadow:none;border:1px solid #a07c48}
 .seg button.on{background:linear-gradient(#a06a35,#6b3e1b);color:#fff;border-color:#3a210c}
 .chk{display:flex;align-items:center;gap:10px;margin:9px 0;font-size:15px;cursor:pointer}
 .chk input{width:18px;height:18px;accent-color:#7a4520}
@@ -78,16 +108,17 @@ td:first-child,th:first-child{text-align:left}
 @media (max-width:600px){
   .brand{font-size:21px}.score{font-size:15px}
   button{font-size:14px;padding:7px 11px}
-  .board-wrap{width:100%}
   .modal{padding:18px}
 }
 </style>
 </head>
 <body>
+<div id="app">
 <header class="topbar">
   <div class="brand">Нарды<small id="variantLabel"></small></div>
   <div class="score" id="score"></div>
   <div class="actions">
+    <button id="btnRotate" title="Повернуть игру горизонтально">⟳ Повернуть</button>
     <button id="btnMenu">Меню</button>
     <button id="btnSettings" title="Настройки">⚙ Настройки</button>
   </div>
@@ -96,7 +127,7 @@ td:first-child,th:first-child{text-align:left}
 <main>
   <div class="board-wrap">
     <svg id="static" viewBox="-80 0 1080 720" aria-hidden="true"></svg>
-    <svg id="dyn" viewBox="-80 0 1080 720"><g id="layer"></g><g id="float" style="pointer-events:none"></g></svg>
+    <svg id="dyn" viewBox="-80 0 1080 720"><g id="layer"></g><g id="diceFx" style="pointer-events:none"></g><g id="float" style="pointer-events:none"></g></svg>
   </div>
 </main>
 
@@ -107,8 +138,8 @@ td:first-child,th:first-child{text-align:left}
   </div>
   <div class="btns">
     <button id="btnUndo" disabled>↶ Отменить</button>
-    <button id="btnRoll" class="primary" hidden>🎲 Бросить кубики</button>
     <button id="btnDone" class="primary" hidden>✓ Завершить ход</button>
+    <button id="btnResign" disabled title="Признать поражение в этой партии">🏳 Сдаться</button>
   </div>
 </footer>
 
@@ -126,8 +157,13 @@ td:first-child,th:first-child{text-align:left}
         <button data-v="easy">Лёгкий</button><button data-v="medium">Средний</button><button data-v="hard">Сложный</button>
       </div>
     </div>
+    <div class="opt"><div class="label">Матч до</div>
+      <div class="seg" data-obj="prefs" data-key="matchLen">
+        <button data-v="5">5</button><button data-v="7">7</button><button data-v="9">9</button><button data-v="11">11</button><button data-v="15">15</button><button data-v="0" style="flex:2">Без лимита</button>
+      </div>
+    </div>
     <div class="mbtns">
-      <button class="primary" id="mNew">Новая партия</button>
+      <button class="primary" id="mNew">Новый матч</button>
       <button id="mContinue" hidden>Продолжить партию</button>
       <button id="mSettings">Настройки</button>
       <button id="mStats">Статистика</button>
@@ -142,7 +178,7 @@ td:first-child,th:first-child{text-align:left}
     <h2>Настройка</h2>
     <div class="opt"><div class="label">Бросок кубиков</div>
       <div class="seg" data-obj="settings" data-key="rollMode">
-        <button data-v="manual">Кнопкой</button><button data-v="auto">Автоматически</button>
+        <button data-v="manual">Нажатием на доску</button><button data-v="auto">Автоматически</button>
       </div>
     </div>
     <div class="opt"><div class="label">Скорость анимации</div>
@@ -177,6 +213,7 @@ td:first-child,th:first-child{text-align:left}
       <li>Вы играете белыми, компьютер — тёмными. Кто ходит первым, решает бросок по одному кубику.</li>
       <li>Шашка ходит на число очков каждого кубика отдельно. Дубль — ходите четыре раза.</li>
       <li>Нужно использовать оба кубика, если это возможно. Если можно сыграть только один — обязательно больший.</li>
+      <li>Матч играется до выбранного числа очков (5, 7, 9, 11, 15) или без лимита. Побеждает тот, кто первым наберёт нужный счёт.</li>
       <li>Когда все 15 шашек в доме (правая нижняя четверть), их можно выбрасывать. Больший кубик снимает шашку с дальнего пункта, если выше неё пусто.</li>
     </ul>
     <h3>Длинные нарды</h3>
@@ -196,9 +233,11 @@ td:first-child,th:first-child{text-align:left}
     </ul>
     <h3>Управление</h3>
     <ul>
+      <li>Чтобы бросить кубики, нажмите на левую или правую половину доски — кубики полетят туда.</li>
       <li>Нажмите на шашку — подсветятся пункты, куда можно пойти. Нажмите на пункт, чтобы сходить. Можно сразу ходить на сумму кубиков.</li>
       <li>Для выброса нажмите на шашку, затем на лоток справа.</li>
-      <li>Пробел — бросить кубики / завершить ход, Ctrl+Z — отменить ход, Esc — снять выбор.</li>
+      <li>«Сдаться» — признать поражение в партии. Компьютер получает очки по текущей позиции: 1, а если вы ещё не выбросили ни одной шашки — марс (2) или кокс (3).</li>
+      <li>Пробел — бросить кубики на случайную половину / завершить ход, Ctrl+Z — отменить ход, Esc — снять выбор.</li>
     </ul>
     <div class="row"><button class="primary" data-close>Понятно</button></div>
   </div>
@@ -214,6 +253,7 @@ td:first-child,th:first-child{text-align:left}
   </div>
 </div>
 
+</div><!-- #app -->
 <script>
 (()=>{
 'use strict';
@@ -226,11 +266,13 @@ const LS={
 };
 const DEF_SETTINGS={rollMode:'manual',confirmMove:true,sound:true,speed:'normal',hints:true,numbers:true,pips:true};
 const settings=Object.assign({},DEF_SETTINGS,LS.get('nardy.settings',{}));
-const prefs=Object.assign({variant:'long',difficulty:'medium'},LS.get('nardy.prefs',{}));
-const emptyStat=()=>({games:0,wins:0,losses:0,ptsFor:0,ptsAgainst:0,marsFor:0,marsAgainst:0,koksFor:0,koksAgainst:0});
+const prefs=Object.assign({variant:'long',difficulty:'medium',matchLen:'7'},LS.get('nardy.prefs',{}));
+const emptyStat=()=>({games:0,wins:0,losses:0,ptsFor:0,ptsAgainst:0,marsFor:0,marsAgainst:0,koksFor:0,koksAgainst:0,matchWins:0,matchLosses:0});
 let stats=LS.get('nardy.stats',null);
 if(!stats||!stats.long||!stats.short) stats={long:emptyStat(),short:emptyStat()};
-const session={me:0,ai:0};
+else{stats.long=Object.assign(emptyStat(),stats.long);stats.short=Object.assign(emptyStat(),stats.short);}
+// Текущий матч: target=0 — без лимита
+let match={target:0,me:0,ai:0,variant:'long',diff:'medium',over:false};
 const DIFF_NAMES={easy:'лёгкий',medium:'средний',hard:'сложный'};
 
 /* ================= Движок правил ================= */
@@ -488,13 +530,14 @@ function noise(dur,vol,freq,t){
   g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(0.001,t+dur);
   src.connect(f).connect(g).connect(AC.destination);src.start(t,Math.random()*0.5);src.stop(t+dur+0.02);
 }
-function sfx(name){
+function sfx(name,vol=1){
   if(!settings.sound||!AC)return;
   try{
     const t=AC.currentTime;
     if(name==='click'){noise(0.05,0.6,1700,t);tone(190,0.09,'sine',0.25,t,90);}
     else if(name==='hit'){noise(0.09,0.8,900,t);tone(130,0.2,'triangle',0.35,t,55);}
-    else if(name==='dice'){for(let i=0;i<7;i++)noise(0.035,0.45,2300+Math.random()*1800,t+i*0.055+Math.random()*0.02);}
+    else if(name==='dice'){for(let i=0;i<7;i++)noise(0.03,0.22+Math.random()*0.15,2400+Math.random()*1800,t+i*0.045+Math.random()*0.025);}
+    else if(name==='dieHit'){noise(0.028,0.6*vol,3200+Math.random()*1500,t);noise(0.06,0.35*vol,850,t);tone(260+Math.random()*60,0.05,'sine',0.12*vol,t,140);}
     else if(name==='win'){[523,659,784,1047].forEach((f,i)=>tone(f,0.3,'triangle',0.2,t+i*0.13));}
     else if(name==='lose'){[392,330,262].forEach((f,i)=>tone(f,0.35,'triangle',0.18,t+i*0.2));}
   }catch(e){}
@@ -542,7 +585,10 @@ function buildStatic(){
   <linearGradient id="slW" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fffaf0"/><stop offset="1" stop-color="#cdb98f"/></linearGradient>
   <linearGradient id="slB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6a4434"/><stop offset="1" stop-color="#1a0c06"/></linearGradient>
   <linearGradient id="dieL" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fffdf5"/><stop offset="1" stop-color="#e0d0ac"/></linearGradient>
-  <linearGradient id="dieD" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6b4532"/><stop offset="1" stop-color="#22110a"/></linearGradient>
+  <linearGradient id="dieD" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7a4e38"/><stop offset=".55" stop-color="#3e2014"/><stop offset="1" stop-color="#1c0d06"/></linearGradient>
+  <radialGradient id="pipL" cx="62%" cy="65%" r="70%"><stop offset="0" stop-color="#5a3a22"/><stop offset=".6" stop-color="#2a170a"/><stop offset="1" stop-color="#0d0603"/></radialGradient>
+  <radialGradient id="pipD" cx="40%" cy="35%" r="75%"><stop offset="0" stop-color="#fffaf0"/><stop offset="1" stop-color="#c9b48a"/></radialGradient>
+  <filter id="dblur" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="3.5"/></filter>
   <linearGradient id="frameG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#74401f"/><stop offset=".5" stop-color="#5a2f15"/><stop offset="1" stop-color="#43220e"/></linearGradient>
   <linearGradient id="fieldG" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#d6ad74"/><stop offset=".5" stop-color="#e2bd86"/><stop offset="1" stop-color="#d2a76c"/></linearGradient>
   <linearGradient id="ptD" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5e2e15"/><stop offset="1" stop-color="#3b1a09"/></linearGradient>
@@ -582,10 +628,154 @@ function checkerSVG(p,x,y){
 }
 const slabSVG=(p,x,y)=>`<rect x="${x-30}" y="${y-6}" width="60" height="12" rx="3" fill="url(#${p?'slB':'slW'})" stroke="${p?'#000':'#8c7a58'}" stroke-width="1"/>`;
 const PIPS={1:[[0,0]],2:[[-1,-1],[1,1]],3:[[-1,-1],[0,0],[1,1]],4:[[-1,-1],[1,-1],[-1,1],[1,1]],5:[[-1,-1],[1,-1],[0,0],[-1,1],[1,1]],6:[[-1,-1],[1,-1],[-1,0],[1,0],[-1,1],[1,1]]};
-function dieSVG(x,y,v,dark,used,shake){
-  let h=`<g transform="translate(${x},${y})" opacity="${used?0.32:1}"><g class="${shake?'shake':''}"><rect x="-25" y="-25" width="50" height="50" rx="9" fill="url(#${dark?'dieD':'dieL'})" stroke="${dark?'#000':'#8c7a58'}" stroke-width="1.5" filter="url(#sh)"/>`;
-  for(const [i,j] of PIPS[v])h+=`<circle cx="${i*13}" cy="${j*13}" r="4.8" fill="${dark?'#f4ead2':'#2a1a0e'}"/>`;
-  return h+'</g></g>';
+/* ---------- Кубики ---------- */
+// ===== Настоящий 3D-кубик =====
+// Мир: x вправо, y вниз (как на экране), z вверх от доски к зрителю.
+// Камера смотрит сверху и чуть спереди (с юга), поэтому видна верхняя грань и передняя боковая.
+const TILT=24*Math.PI/180,TS=Math.sin(TILT),TC=Math.cos(TILT);
+const VIEW=[0,TS,TC];
+const LIGHT=(()=>{const l=[-0.45,-0.6,0.85],n=Math.hypot(...l);return l.map(v=>v/n);})();
+const dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
+const mmul=(A,B)=>A.map(r=>[0,1,2].map(j=>r[0]*B[0][j]+r[1]*B[1][j]+r[2]*B[2][j]));
+const mvec=(M,v)=>M.map(r=>r[0]*v[0]+r[1]*v[1]+r[2]*v[2]);
+function rotAxis(a,deg){ // поворот вокруг единичной оси a (формула Родрига)
+  const t=deg*Math.PI/180,c=Math.cos(t),s=Math.sin(t),k=1-c,[x,y,z]=a;
+  return [[c+x*x*k,x*y*k-z*s,x*z*k+y*s],[y*x*k+z*s,c+y*y*k,y*z*k-x*s],[z*x*k-y*s,z*y*k+x*s,c+z*z*k]];
+}
+const rotZ=deg=>rotAxis([0,0,1],deg);
+// Грани кубика в его собственных координатах: нормаль, две оси грани, число. Противоположные дают 7.
+const FACES=[
+  {n:[0,0,1],u:[1,0,0],v:[0,1,0],val:1},{n:[0,0,-1],u:[1,0,0],v:[0,-1,0],val:6},
+  {n:[1,0,0],u:[0,1,0],v:[0,0,-1],val:3},{n:[-1,0,0],u:[0,-1,0],v:[0,0,-1],val:4},
+  {n:[0,1,0],u:[-1,0,0],v:[0,0,-1],val:2},{n:[0,-1,0],u:[1,0,0],v:[0,0,-1],val:5}
+];
+// Поворот, который ставит грань со значением v наверх
+const UPRIGHT={1:rotAxis([1,0,0],0),6:rotAxis([1,0,0],180),3:rotAxis([0,1,0],-90),4:rotAxis([0,1,0],90),2:rotAxis([1,0,0],90),5:rotAxis([1,0,0],-90)};
+const CUBE_V=[];for(const x of [-1,1])for(const y of [-1,1])for(const z of [-1,1])CUBE_V.push([x,y,z]);
+const proj=v=>[v[0],v[1]*TC-v[2]*TS];
+function hull(pts){ // выпуклая оболочка (монотонная цепь)
+  pts=pts.slice().sort((a,b)=>a[0]-b[0]||a[1]-b[1]);
+  const cr=(o,a,b)=>(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]);
+  const lo=[],up=[];
+  for(const p of pts){while(lo.length>1&&cr(lo[lo.length-2],lo[lo.length-1],p)<=0)lo.pop();lo.push(p);}
+  for(const p of pts.reverse()){while(up.length>1&&cr(up[up.length-2],up[up.length-1],p)<=0)up.pop();up.push(p);}
+  return lo.slice(0,-1).concat(up.slice(0,-1));
+}
+const DIE_COL={
+  light:{face:[255,249,234],edge:[214,196,160],pip:[28,15,7]},
+  dark:{face:[120,70,46],edge:[62,34,20],pip:[236,226,204]}
+};
+const shade=(c,k)=>`rgb(${c.map(v=>Math.max(0,Math.min(255,Math.round(v*k)))).join(',')})`;
+const PIP_POS={1:[[0,0]],2:[[-1,-1],[1,1]],3:[[-1,-1],[0,0],[1,1]],4:[[-1,-1],[1,-1],[-1,1],[1,1]],5:[[-1,-1],[1,-1],[0,0],[-1,1],[1,1]],6:[[-1,-1],[1,-1],[-1,0],[1,0],[-1,1],[1,1]]};
+// Рисует кубик с центром (x,y) экрана, ориентацией R, половиной ребра hs
+function dieCube(x,y,R,dark,o){
+  o=o||{};
+  const hs=23*(o.sc||1),op=o.op===undefined?1:o.op,C=dark?DIE_COL.dark:DIE_COL.light;
+  // силуэт с закруглёнными рёбрами — заполняет стыки между гранями
+  const pts=hull(CUBE_V.map(c=>proj(mvec(R,c)).map(v=>v*hs*0.955)));
+  let h=`<g transform="translate(${x.toFixed(1)},${y.toFixed(1)})" opacity="${op}">`
+    +`<polygon points="${pts.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ')}" fill="${shade(C.edge,1)}" stroke="${shade(C.edge,1)}" stroke-width="${(hs*0.1).toFixed(1)}" stroke-linejoin="round"/>`;
+  for(const f of FACES){
+    const N=mvec(R,f.n),vis=dot(N,VIEW);
+    if(vis<=0.03)continue;
+    const U=proj(mvec(R,f.u)).map(v=>v*hs),W=proj(mvec(R,f.v)).map(v=>v*hs),Cc=proj(N).map(v=>v*hs);
+    const light=(dark?0.62:0.8)+(dark?0.45:0.24)*Math.max(0,dot(N,LIGHT));
+    const m=`matrix(${U[0].toFixed(3)},${U[1].toFixed(3)},${W[0].toFixed(3)},${W[1].toFixed(3)},${Cc[0].toFixed(2)},${Cc[1].toFixed(2)})`;
+    // плавно гасим грань, которая только появляется из-за ребра
+    const fo=Math.min(1,vis/0.12);
+    h+=`<g transform="${m}" opacity="${fo.toFixed(3)}"><rect x="-.95" y="-.95" width="1.9" height="1.9" rx=".32" fill="${shade(C.face,light)}"/>`;
+    for(const [i,j] of PIP_POS[f.val])h+=`<circle cx="${i*.5}" cy="${j*.5}" r=".19" fill="${shade(C.pip,dark?light:1)}"/><circle cx="${(i*.5+.035).toFixed(3)}" cy="${(j*.5+.045).toFixed(3)}" r=".13" fill="${shade(C.pip,dark?light*1.1:2.4)}" opacity=".35"/>`;
+    h+='</g>';
+  }
+  return h+'</g>';
+}
+const restPose=(v,yaw)=>mmul(rotZ(yaw),UPRIGHT[v]);
+// Тень на доске: смещается и бледнеет, когда кубик в воздухе
+const dieShadow=(x,y,rot,ht,op)=>`<g transform="translate(${(x+5+18*ht).toFixed(1)},${(y+12+12*ht).toFixed(1)}) rotate(${rot.toFixed(1)}) scale(${(1+0.2*ht).toFixed(3)},${(0.9+0.15*ht).toFixed(3)})" opacity="${op.toFixed(3)}"><rect x="-24" y="-24" width="48" height="48" rx="11" fill="#000" filter="url(#dblur)"/></g>`;
+function dieAt(p,v,used){
+  return dieShadow(p.x,p.y,p.rot,0,used?0.14:0.45)+dieCube(p.x,p.y,restPose(v,p.rot),p.side===1,{op:used?0.42:1});
+}
+// Куда упадут кубики: случайные места по всей выбранной половине доски (half: 0 — левая, 1 — правая).
+// Из нескольких случайных вариантов берём тот, что меньше закрывает шашки, и разводим кубики друг от друга.
+function spotsInHalf(half,n,side){
+  const x0=half?490:40,res=[],chk=[];
+  if(G.s)for(let a=0;a<24;a++){const v=G.s.b[a];if(!v)continue;const k=Math.abs(v);for(let i=0;i<k;i++)chk.push(slotPos(a,i,k));}
+  for(let k=0;k<n;k++){
+    let best=null,bs=-1;
+    for(let t=0;t<30;t++){
+      const c={x:x0+48+Math.random()*294,y:88+Math.random()*544,rot:(Math.random()-.5)*80,side};
+      let dd=1e9;for(const r of res)dd=Math.min(dd,Math.hypot(r.x-c.x,r.y-c.y));
+      if(dd<82)continue;
+      let d=1e9;for(const q of chk)d=Math.min(d,Math.hypot(q.x-c.x,q.y-c.y));
+      const sc=Math.min(d,72)+Math.random()*30;
+      if(sc>bs){bs=sc;best=c;}
+    }
+    res.push(best||{x:x0+195+(k?55:-55),y:360,rot:0,side});
+  }
+  return res;
+}
+const DIE_DUR={slow:1500,normal:1150,fast:720,off:0};
+// Бросок «рукой»: кубики трясутся в ладони у края доски, затем летят по дуге,
+// кувыркаются в 3D, делают 2–4 затухающих отскока и докатываются на выпавшую грань.
+// specs: [{v, side, from:{x,y}, to:{x,y,rot}}]
+function throwDice(specs){
+  const dur=DIE_DUR[settings.speed]||0,fx=$('diceFx');
+  if(!dur||document.hidden){sfx('dieHit',1);return Promise.resolve();}
+  const shakeT=dur*0.3;
+  const dice=specs.map((s,i)=>{
+    const o=s.from,to=s.to,dx=to.x-o.x,dy=to.y-o.y,L=Math.hypot(dx,dy)||1;
+    const bend=(Math.random()-.5)*0.7*L; // дуга полёта то влево, то вправо
+    const cp={x:(o.x+to.x)/2-dy/L*bend,y:(o.y+to.y)/2+dx/L*bend};
+    const nb=2+Math.floor(Math.random()*3),hs=[1];
+    for(let k=1;k<nb;k++)hs.push(hs[k-1]*(0.26+Math.random()*0.22));
+    const ws=hs.map(Math.sqrt),W=ws.reduce((a,b)=>a+b,0),end=0.78+Math.random()*0.1;
+    let acc=0;const B=hs.map((h,k)=>{const a=acc;acc+=ws[k]/W*end;return[a,acc,h];});
+    const ax=[Math.random()-.5,Math.random()-.5,Math.random()-.5],an=Math.hypot(...ax)||1;
+    return {s,o,cp,B,
+      delay:i*(30+Math.random()*70),
+      T:dur*(0.85+Math.random()*0.3),
+      roll:[-dy/L,dx/L,0],dir:[dx/L,dy/L,0],
+      rollDeg:90*(3+Math.floor(Math.random()*5)),
+      wobDeg:90*[-1,0,1][Math.floor(Math.random()*3)],
+      spin:(Math.random()<.5?-1:1)*(120+Math.random()*280),
+      shakeAx:ax.map(v=>v/an),ph:Math.random()*10,hit:0};
+  });
+  sfx('dice');
+  const H0=0.7; // высота «в руке»
+  return new Promise(res=>{
+    const t0=performance.now();
+    function frame(now){
+      let h='',done=true;const el=now-t0;
+      for(const d of dice){
+        const to=d.s.to;
+        const pose=(yaw,rem)=>mmul(rotAxis(d.roll,-d.rollDeg*rem),mmul(rotAxis(d.dir,d.wobDeg*rem),restPose(d.s.v,yaw)));
+        const hold=shakeT+d.delay;
+        if(el<hold){ // тряска в руке
+          done=false;
+          const ts=el/hold;
+          const x=d.o.x+Math.sin(el/27+d.ph)*8+Math.sin(el/43+d.ph*2)*4;
+          const y=d.o.y+Math.cos(el/31+d.ph)*6;
+          const R=mmul(rotAxis(d.shakeAx,620*(1-ts)),pose(to.rot+d.spin,1));
+          h+=dieShadow(x,y,to.rot,H0,0.18);
+          h+=dieCube(x,y-34*H0,R,d.s.side===1,{sc:1+0.38*H0});
+          continue;
+        }
+        const t=Math.min(1,(el-hold)/d.T);if(t<1)done=false;
+        const p=1-Math.pow(1-t,2.1),q=1-p;
+        const x=q*q*d.o.x+2*q*p*d.cp.x+p*p*to.x,y=q*q*d.o.y+2*q*p*d.cp.y+p*p*to.y;
+        let ht=0;
+        d.B.forEach(([a,b,Hh],k)=>{if(t>=a&&t<b){const u=(t-a)/(b-a);ht=Hh*Math.sin(Math.PI*u)+(k===0?H0*(1-u):0);}});
+        while(d.hit<d.B.length&&t>=d.B[d.hit][1]){sfx('dieHit',[1,.55,.32,.2][d.hit]||.15);d.hit++;}
+        const tr=Math.min(1,t/0.9),rem=Math.pow(1-tr,2.3);
+        const yaw=to.rot+d.spin*rem;
+        h+=dieShadow(x,y,yaw,ht,0.45-0.22*Math.min(1,ht));
+        h+=dieCube(x,y-34*ht,pose(yaw,rem),d.s.side===1,{sc:1+0.38*ht});
+      }
+      fx.innerHTML=h;
+      if(!done)requestAnimationFrame(frame);else{fx.innerHTML='';res();}
+    }
+    requestAnimationFrame(frame);
+  });
 }
 
 function render(opt){
@@ -593,25 +783,6 @@ function render(opt){
   const s=G.s,hide=opt.hide;let h='';
   if(!s){$('layer').innerHTML='';updateUI();return;}
   const humanMove=G.turn===0&&G.phase==='move'&&!G.busy;
-  // следы последнего хода компьютера
-  if(G.turn===0&&G.last.length&&G.phase!=='over'&&!G.opening){
-    for(const m of G.last){
-      const r=R2A[V][m.p];
-      if(m.from>=0)h+=`<polygon points="${triPts(r[m.from])}" fill="#5aa9ff" opacity=".22"/>`;
-      if(m.to<24)h+=`<polygon points="${triPts(r[m.to])}" fill="#ff8a3d" opacity=".3"/>`;
-    }
-  }
-  // подсветка целей
-  if(humanMove&&G.sel!==null&&settings.hints){
-    for(const r of G.targets.keys()){
-      if(r>=24)h+=`<rect x="903" y="43" width="74" height="634" rx="6" fill="#ffd34d" opacity=".32"/>`;
-      else{
-        const a=R2A[V][0][r],n=own(s,a,0),pos=slotPos(a,n,n+1);
-        h+=`<polygon points="${triPts(a)}" fill="#ffc21a" opacity=".55"/>`;
-        h+=`<circle cx="${pos.x}" cy="${pos.y}" r="26" fill="#fff3b0" fill-opacity=".45" stroke="#d99a00" stroke-width="3.5" stroke-dasharray="7 5"/>`;
-      }
-    }
-  }
   // шашки на пунктах
   for(let a=0;a<24;a++){
     const v=s.b[a];if(!v)continue;
@@ -626,6 +797,18 @@ function render(opt){
     let n=s.off[p];if(hide&&hide.p===p&&hide.to>=24)n--;
     for(let i=0;i<n;i++){const q=offPos(p,i);h+=slabSVG(p,q.x,q.y);}
   }
+  // кубики лежат поверх шашек, но под подсказками хода
+  if(G.opening&&G.openPose){
+    h+=dieAt(G.openPose[0],G.opening.h,false);
+    h+=dieAt(G.openPose[1],G.opening.a,false);
+  }else if(!G.rolling&&G.dice.length&&G.dicePose){
+    const dbl=G.dice[0]===G.dice[1],used=(dbl?4:2)-G.rem.length;
+    G.dice.forEach((v,i)=>{h+=dieAt(G.dicePose[i],v,dbl?used>=(i+1)*2:!G.rem.includes(v));});
+    if(dbl){ // дубль: четыре метки под кубиками — сколько ходов осталось
+      const cx=(G.dicePose[0].x+G.dicePose[1].x)/2,my=Math.min(Math.max(G.dicePose[0].y,G.dicePose[1].y)+42,668);
+      for(let i=0;i<4;i++)h+=`<rect x="${(cx-37+i*20).toFixed(1)}" y="${(my-6).toFixed(1)}" width="12" height="12" rx="3" fill="${G.dicePose[0].side?'#3a2014':'#f6ecd4'}" stroke="#000" stroke-opacity=".4" opacity="${i<used?0.25:0.95}"/>`;
+    }
+  }
   // доступные шашки
   if(humanMove){
     const srcs=new Set(G.legal.map(m=>m.from));
@@ -635,18 +818,13 @@ function render(opt){
       else if(settings.hints)h+=`<circle cx="${pos.x}" cy="${pos.y}" r="30" fill="none" stroke="#ffd34d" stroke-width="3" class="pulse"/>`;
     }
   }
-  // кубики
-  if(G.opening){
-    h+=dieSVG(685,360,G.opening.h,false,false,G.opening.rolling);
-    h+=dieSVG(235,360,G.opening.a,true,false,G.opening.rolling);
-  }else if(G.rolling||G.dice.length){
-    const cx=G.turn===0?685:235,dark=G.turn===1;
-    const vals=G.rolling?G.rollShow:G.dice;
-    if(!G.rolling&&vals[0]===vals[1]){
-      const used=4-G.rem.length;
-      for(let i=0;i<4;i++)h+=dieSVG(cx-93+i*62,360,vals[0],dark,i<used,false);
-    }else{
-      vals.forEach((v,i)=>{h+=dieSVG(cx-32+i*64,360,v,dark,!G.rolling&&!G.rem.includes(v),G.rolling);});
+  // подсветка целей: кружок там, куда встанет шашка. Рисуется поверх шашек —
+  // в высокой стопке (больше 5) место для новой шашки накладывается на верхнюю.
+  const ghost=(x,y,over)=>`<circle cx="${x}" cy="${y}" r="${over?31:26}" fill="#fff3b0" fill-opacity="${over?.3:.45}" stroke="#d99a00" stroke-width="3.5" stroke-dasharray="7 5"/>`;
+  if(humanMove&&G.sel!==null&&settings.hints){
+    for(const r of G.targets.keys()){
+      if(r>=24){const q=offPos(0,s.off[0]);h+=ghost(q.x,Math.min(q.y,650),false);}
+      else{const a=R2A[V][0][r],n=own(s,a,0),pos=slotPos(a,n,n+1);h+=ghost(pos.x,pos.y,n>=5);}
     }
   }
   // зоны нажатия
@@ -656,19 +834,19 @@ function render(opt){
   }
   h+=`<rect data-k="bar" data-a="0" x="430" y="40" width="60" height="640" fill="transparent"/>`;
   h+=`<rect data-k="off" data-a="0" x="900" y="40" width="80" height="640" fill="transparent"/>`;
-  if(G.phase==='roll'&&G.turn===0&&settings.rollMode==='manual'){
-    h+=`<g data-k="roll" data-a="0" style="cursor:pointer"><rect x="585" y="333" width="200" height="54" rx="12" fill="#2b1608" stroke="#ffd34d" stroke-width="2.5" class="pulse"/><text x="685" y="367" text-anchor="middle" fill="#ffe7a6" font-size="21" font-family="Georgia,serif">🎲 Бросить</text></g>`;
-  }
+  // ждём броска: вся доска — одна большая зона нажатия
+  if(G.phase==='roll'&&G.turn===0&&settings.rollMode==='manual')
+    h+=`<rect data-k="roll" data-a="0" x="-80" y="0" width="1080" height="720" fill="transparent" style="cursor:pointer"/>`;
   $('layer').innerHTML=h;
   updateUI();
 }
 function updateUI(){
   const human=G.turn===0;
-  $('btnRoll').hidden=!(G.on&&G.phase==='roll'&&human&&settings.rollMode==='manual');
   $('btnDone').hidden=G.phase!=='confirm';
+  $('btnResign').disabled=!canResign();
   $('btnUndo').disabled=!(human&&!G.busy&&G.hist.length&&(G.phase==='move'||G.phase==='confirm'));
-  $('score').innerHTML=`Вы <b>${session.me}</b> : <b>${session.ai}</b> Компьютер`;
-  $('variantLabel').textContent=G.on?(V==='long'?'длинные':'короткие')+' · '+DIFF_NAMES[G.diff]:'';
+  $('score').innerHTML=(G.on&&match.target?`<span style="color:#c9a979">до ${match.target} · </span>`:'')+`Вы <b>${match.me}</b> : <b>${match.ai}</b> Компьютер`;
+  $('variantLabel').textContent=G.on?(V==='long'?'длинные':'короткие')+' · '+DIFF_NAMES[G.diff]+' · '+(match.target?`матч до ${match.target}`:'без лимита'):'';
   $('pips').textContent=(settings.pips&&G.on&&G.s)?`Пипсы — вы: ${pipOf(G.s,0)} · компьютер: ${pipOf(G.s,1)}`:'';
   $('turnDot').className='dot '+(human?'w':'b');
 }
@@ -698,47 +876,62 @@ function later(fn,ms){const t=G.token;setTimeout(()=>{if(t===G.token)fn();},ms);
 const SPEED={slow:[480,520],normal:[300,320],fast:[160,150],off:[0,60]};
 const dur=()=>SPEED[settings.speed][0],gap=()=>SPEED[settings.speed][1];
 
-function newGame(){
+// newGame(true) — следующая партия текущего матча, newGame() — новый матч по настройкам меню
+function newGame(nextInMatch){
   G.token++;
-  V=prefs.variant;G.diff=prefs.difficulty;
+  if(!nextInMatch||match.over)
+    match={target:+prefs.matchLen||0,me:0,ai:0,variant:prefs.variant,diff:prefs.difficulty,over:false};
+  V=match.variant;G.diff=match.diff;
   Object.assign(G,{on:true,s:newState(V),turn:0,phase:'opening',dice:[],rem:[],head:0,hl:1,forceHigh:0,
     firstTurn:[true,true],hist:[],legal:[],sel:null,targets:new Map(),last:[],turnMoves:[],busy:false,opening:null,rolling:false});
-  $('float').innerHTML='';
+  G.dicePose=null;G.openPose=null;
+  $('float').innerHTML='';$('diceFx').innerHTML='';
   closeAll();
   render();
   openingRoll();
 }
 async function openingRoll(){
-  const tok=G.token;let h,a;
+  const tok=G.token;let h,a,ph,pa;
   setStatus('Бросок за право первого хода…');
   do{
-    G.opening={h:1,a:1,rolling:true};sfx('dice');
-    const frames=settings.speed==='off'?2:8;
-    for(let i=0;i<frames;i++){G.opening.h=r6();G.opening.a=r6();render();await sleep(65);if(tok!==G.token)return;}
-    h=r6();a=r6();G.opening={h,a,rolling:false};render();
-    if(h===a){setStatus(`У обоих ${h} — перебрасываем`);await sleep(900);if(tok!==G.token)return;}
+    G.opening=null;G.openPose=null;render();
+    h=r6();a=r6();ph=spotsInHalf(1,1,0)[0];pa=spotsInHalf(0,1,1)[0];
+    await throwDice([{v:h,side:0,to:ph,from:throwOrigin(0,1)},{v:a,side:1,to:pa,from:throwOrigin(1,0)}]);
+    if(tok!==G.token)return;
+    G.opening={h,a};G.openPose=[ph,pa];render();
+    if(h===a){setStatus(`У обоих ${h} — перебрасываем`);await sleep(1000);if(tok!==G.token)return;}
   }while(h===a);
   const first=h>a?0:1;
   setStatus(first===0?`У вас ${h}, у компьютера ${a} — вы ходите первым`:`У компьютера ${a}, у вас ${h} — первым ходит компьютер`);
   await sleep(1400);if(tok!==G.token)return;
-  G.opening=null;
+  G.opening=null;G.openPose=null;
   if(V==='short'){
-    G.turn=first;G.turnMoves=[];G.hist=[];G.dice=first===0?[h,a]:[a,h];
+    // в коротких первый ход делается этими же кубиками — они остаются лежать на доске
+    G.turn=first;G.turnMoves=[];G.hist=[];G.dice=first===0?[h,a]:[a,h];G.dicePose=first===0?[ph,pa]:[pa,ph];
     beginMoves(h,a);
   }else startTurn(first);
 }
 function startTurn(p){
-  G.turn=p;G.phase='roll';G.sel=null;G.targets=new Map();G.turnMoves=[];G.hist=[];G.dice=[];G.rem=[];
+  G.turn=p;G.phase='roll';G.sel=null;G.targets=new Map();G.turnMoves=[];G.hist=[];G.dice=[];G.rem=[];G.dicePose=null;
   if(p===1){setStatus('Ход компьютера');render();later(doRoll,450);}
   else if(settings.rollMode==='auto'){setStatus('Ваш ход');render();later(doRoll,400);}
-  else{setStatus('Ваш ход — бросьте кубики');render();}
+  else{setStatus('Ваш ход — нажмите на левую или правую половину доски, чтобы бросить кубики');render();}
 }
-async function doRoll(){
+// Откуда летят кубики: вы бросаете со своего края (снизу), компьютер — со своего (сверху).
+// tapX — куда нажал игрок, иначе случайная точка над выбранной половиной.
+function throwOrigin(side,half,tapX){
+  const x=tapX!==undefined?Math.max(60,Math.min(860,tapX)):(half?685:235)+(Math.random()-.5)*220;
+  return {x,y:side===0?700:20};
+}
+// half: 0 — левая половина, 1 — правая; если не задана, выбирается случайно
+async function doRoll(half,tapX){
   if(G.phase!=='roll'||G.busy)return;
-  const tok=G.token;G.phase='rolling';G.rolling=true;sfx('dice');
-  const frames=settings.speed==='off'?2:8;
-  for(let i=0;i<frames;i++){G.rollShow=[r6(),r6()];render();await sleep(60);if(tok!==G.token)return;}
-  const a=r6(),b=r6();G.rolling=false;G.dice=[a,b];
+  if(half!==0&&half!==1)half=Math.random()<.5?0:1;
+  const tok=G.token,side=G.turn;G.phase='rolling';G.rolling=true;G.dice=[];G.dicePose=null;render();
+  const a=r6(),b=r6(),spots=spotsInHalf(half,2,side),o=throwOrigin(side,half,tapX);
+  await throwDice([{v:a,side,to:spots[0],from:{x:o.x-16,y:o.y}},{v:b,side,to:spots[1],from:{x:o.x+16,y:o.y+(side?4:-4)}}]);
+  if(tok!==G.token)return;
+  G.rolling=false;G.dice=[a,b];G.dicePose=spots;
   beginMoves(a,b);
 }
 function beginMoves(a,b){
@@ -851,33 +1044,62 @@ async function aiTurn(){
   if(tok!==G.token)return;
   endTurn();
 }
-function gameOver(w){
-  G.phase='over';G.busy=false;
-  const L=1-w,s=G.s;let pts=1,kind='Обычная победа';
-  if(s.off[L]===0){
-    if(V==='short'){
-      const r=R2A[V][L];let deep=s.bar[L]>0;
-      for(let i=0;i<6;i++)if(own(s,r[i],L))deep=true;
-      if(deep){pts=3;kind='Кокс!';}else{pts=2;kind='Марс!';}
-    }else{pts=2;kind='Марс!';}
+// Сколько очков получит победитель w при текущей позиции
+function resultFor(w){
+  const L=1-w,s=G.s;
+  if(s.off[L]>0)return{pts:1,kind:'Обычная победа'};
+  if(V==='short'){
+    const r=R2A[V][L];let deep=s.bar[L]>0;
+    for(let i=0;i<6;i++)if(own(s,r[i],L))deep=true;
+    if(deep)return{pts:3,kind:'Кокс!'};
   }
+  return{pts:2,kind:'Марс!'};
+}
+function canResign(){return G.on&&!['over','opening'].includes(G.phase);}
+function resign(){
+  if(!canResign())return;
+  const {pts,kind}=resultFor(1);
+  const word=pts===1?'очко':'очка';
+  const note=pts===1?'':` (${kind.replace('!','').toLowerCase()} — вы ещё не выбросили ни одной шашки)`;
+  if(!confirm(`Сдаться? Компьютер получит ${pts} ${word}${note}.`))return;
+  G.token++;$('float').innerHTML='';G.sel=null;G.targets=new Map();
+  gameOver(1,true);
+}
+function gameOver(w,resigned){
+  G.phase='over';G.busy=false;
+  let {pts,kind}=resultFor(w);
+  if(resigned)kind='Сдача · '+kind;
   const st=stats[V];st.games++;
-  if(w===0){st.wins++;st.ptsFor+=pts;session.me+=pts;if(pts===2)st.marsFor++;if(pts===3)st.koksFor++;}
-  else{st.losses++;st.ptsAgainst+=pts;session.ai+=pts;if(pts===2)st.marsAgainst++;if(pts===3)st.koksAgainst++;}
+  if(w===0){st.wins++;st.ptsFor+=pts;match.me+=pts;if(pts===2)st.marsFor++;if(pts===3)st.koksFor++;}
+  else{st.losses++;st.ptsAgainst+=pts;match.ai+=pts;if(pts===2)st.marsAgainst++;if(pts===3)st.koksAgainst++;}
+  const matchDone=match.target>0&&(match.me>=match.target||match.ai>=match.target);
+  if(matchDone){match.over=true;if(w===0)st.matchWins++;else st.matchLosses++;}
   LS.set('nardy.stats',stats);
   sfx(w===0?'win':'lose');
-  setStatus(w===0?'Вы победили!':'Победил компьютер');
+  const gameTitle=w===0?'Вы выиграли партию!':'Компьютер выиграл партию';
+  setStatus(matchDone?(w===0?'Вы выиграли матч!':'Компьютер выиграл матч'):gameTitle);
   render();
-  $('overTitle').textContent=w===0?'Вы победили!':'Победил компьютер';
+  $('overTitle').textContent=matchDone?(w===0?'🏆 Вы выиграли матч!':'Компьютер выиграл матч'):gameTitle;
   $('overKind').textContent=`${kind} +${pts} ${pts===1?'очко':'очка'}`;
-  $('overScore').textContent=`Счёт сессии — вы ${session.me} : ${session.ai} компьютер`;
+  $('overScore').textContent=match.target
+    ?`${matchDone?'Итог матча':'Счёт матча до '+match.target} — вы ${match.me} : ${match.ai} компьютер`
+    :`Счёт (без лимита) — вы ${match.me} : ${match.ai} компьютер`;
+  $('overNew').textContent=matchDone?'Новый матч':'Следующая партия';
   setTimeout(()=>show('ovOver'),700);
 }
 
 /* ================= Ввод ================= */
-function onBoard(k,a){
+// Точка нажатия в координатах доски (учитывает масштаб и поворот экрана)
+function boardPoint(e){
+  const svg=$('dyn'),pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;
+  return pt.matrixTransform(svg.getScreenCTM().inverse());
+}
+function onBoard(k,a,e){
   audioUnlock();
-  if(G.phase==='roll'&&G.turn===0){if(settings.rollMode==='manual')doRoll();return;}
+  if(G.phase==='roll'&&G.turn===0){
+    if(settings.rollMode==='manual'&&e){const p=boardPoint(e);doRoll(p.x<460?0:1,p.x);}
+    return;
+  }
   if(G.phase!=='move'||G.turn!==0||G.busy)return;
   const r=k==='pt'?A2R[V][0][a]:k==='bar'?-1:k==='off'?24:null;
   if(r===null)return;
@@ -890,11 +1112,11 @@ function onBoard(k,a){
 }
 $('dyn').addEventListener('click',e=>{
   const t=e.target.closest('[data-k]');if(!t)return;
-  onBoard(t.dataset.k,+t.dataset.a);
+  onBoard(t.dataset.k,+t.dataset.a,e);
 });
-$('btnRoll').onclick=()=>{audioUnlock();doRoll();};
 $('btnDone').onclick=()=>{audioUnlock();if(G.phase==='confirm')endTurn();};
 $('btnUndo').onclick=()=>{audioUnlock();undo();};
+$('btnResign').onclick=()=>{audioUnlock();resign();};
 document.addEventListener('keydown',e=>{
   if(document.querySelector('.overlay.show'))return;
   if(e.code==='Space'||e.code==='Enter'){
@@ -909,7 +1131,9 @@ function show(id){document.querySelectorAll('.overlay').forEach(o=>o.classList.t
 function closeAll(){document.querySelectorAll('.overlay').forEach(o=>o.classList.remove('show'));}
 let returnTo=null;
 function openMenu(){
-  $('mContinue').hidden=!(G.on&&G.phase!=='over');
+  const between=G.on&&G.phase==='over'&&!match.over;
+  $('mContinue').hidden=!(G.on&&(G.phase!=='over'||between));
+  $('mContinue').textContent=between?`Следующая партия матча (${match.me} : ${match.ai})`:'Продолжить партию';
   syncControls();show('ovMenu');
 }
 function openSub(id){returnTo=document.querySelector('.overlay.show')?.id||null;syncControls();if(id==='ovStats')renderStats();show(id);}
@@ -917,26 +1141,26 @@ document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>{if(returnTo=
 $('btnMenu').onclick=()=>{audioUnlock();openMenu();};
 $('btnSettings').onclick=()=>{returnTo=null;syncControls();show('ovSettings');};
 $('mNew').onclick=()=>{audioUnlock();newGame();};
-$('mContinue').onclick=()=>closeAll();
+$('mContinue').onclick=()=>{if(G.phase==='over'&&!match.over){audioUnlock();newGame(true);}else closeAll();};
 $('mSettings').onclick=()=>openSub('ovSettings');
 $('mStats').onclick=()=>openSub('ovStats');
 $('mRules').onclick=()=>openSub('ovRules');
-$('overNew').onclick=()=>{audioUnlock();newGame();};
+$('overNew').onclick=()=>{audioUnlock();newGame(true);};
 $('overMenu').onclick=()=>openMenu();
 $('statsReset').onclick=()=>{
   if(!confirm('Сбросить всю статистику?'))return;
-  stats={long:emptyStat(),short:emptyStat()};session.me=session.ai=0;
+  stats={long:emptyStat(),short:emptyStat()};
   LS.set('nardy.stats',stats);renderStats();updateUI();
 };
 function renderStats(){
   const L=stats.long,S=stats.short;
-  const rows=[['Партий','games'],['Побед','wins'],['Поражений','losses'],['Очков набрано','ptsFor'],['Очков отдано','ptsAgainst'],
+  const rows=[['Матчей выиграно','matchWins'],['Матчей проиграно','matchLosses'],['Партий','games'],['Побед','wins'],['Поражений','losses'],['Очков набрано','ptsFor'],['Очков отдано','ptsAgainst'],
     ['Ваших марсов','marsFor'],['Марсов вам','marsAgainst'],['Ваших коксов','koksFor'],['Коксов вам','koksAgainst']];
   const pct=s=>s.games?Math.round(s.wins/s.games*100)+'%':'—';
   let h='<table><tr><th></th><th>Длинные</th><th>Короткие</th></tr>';
   for(const [n,k] of rows){if(k.startsWith('koks'))h+=`<tr><td>${n}</td><td>—</td><td>${S[k]}</td></tr>`;else h+=`<tr><td>${n}</td><td>${L[k]}</td><td>${S[k]}</td></tr>`;}
   h+=`<tr><td>Процент побед</td><td>${pct(L)}</td><td>${pct(S)}</td></tr></table>`;
-  h+=`<p style="text-align:center;margin-top:12px">Счёт текущей сессии: вы ${session.me} : ${session.ai} компьютер</p>`;
+  if(G.on)h+=`<p style="text-align:center;margin-top:12px">Текущий матч${match.target?' до '+match.target:' (без лимита)'}: вы ${match.me} : ${match.ai} компьютер</p>`;
   $('statsBody').innerHTML=h;
 }
 function syncControls(){
@@ -966,11 +1190,44 @@ function applySettings(){
   if(G.on&&G.phase==='confirm'&&!settings.confirmMove)later(endTurn,200);
 }
 
+/* ================= Поворот на телефоне ================= */
+// Сначала пробуем настоящий поворот (полный экран + блокировка ориентации, работает в Android).
+// Если браузер не умеет (iPhone), поворачиваем саму страницу на 90° через CSS.
+let rotWanted=!!LS.get('nardy.rotate',false);
+function applyOrientation(){
+  const portrait=innerHeight>innerWidth;
+  const rot=rotWanted&&portrait;
+  const root=document.documentElement;
+  root.classList.toggle('rot',rot);
+  root.classList.toggle('compact',(rot?innerWidth:innerHeight)<560);
+  $('btnRotate').textContent=rotWanted?'⟲ Вертикально':'⟳ Повернуть';
+}
+async function toggleRotate(){
+  rotWanted=!rotWanted;LS.set('nardy.rotate',rotWanted);
+  const root=document.documentElement;
+  applyOrientation(); // CSS-поворот сразу, не дожидаясь браузера
+  const withTimeout=p=>Promise.race([p,new Promise((_,rej)=>setTimeout(rej,1500))]);
+  if(rotWanted){
+    try{
+      if(root.requestFullscreen&&!document.fullscreenElement)await withTimeout(root.requestFullscreen({navigationUI:'hide'}));
+      if(screen.orientation&&screen.orientation.lock)await withTimeout(screen.orientation.lock('landscape'));
+    }catch(e){}
+  }else{
+    try{if(screen.orientation&&screen.orientation.unlock)screen.orientation.unlock();}catch(e){}
+    try{if(document.fullscreenElement)await document.exitFullscreen();}catch(e){}
+  }
+  applyOrientation();
+}
+$('btnRotate').onclick=()=>{audioUnlock();toggleRotate();};
+addEventListener('resize',applyOrientation);
+if(screen.orientation)screen.orientation.addEventListener('change',()=>setTimeout(applyOrientation,100));
+applyOrientation();
+
 /* ================= Старт ================= */
 V=prefs.variant;G.s=newState(V);
 buildStatic();syncControls();render();
 setStatus('Выберите вариант и начните партию');
-window.__nardy={G,legalSteps,enumLeaves,aiChoose,newState,applyMove,genSingle,setV:v=>{V=v;},evaluate};
+window.__nardy={get match(){return match},G,legalSteps,enumLeaves,aiChoose,newState,applyMove,genSingle,setV:v=>{V=v;},evaluate};
 })();
 </script>
 </body>
