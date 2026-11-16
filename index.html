@@ -167,6 +167,7 @@ td:first-child,th:first-child{text-align:left}
   <div class="btns">
     <button id="btnUndo" disabled>↶ Отменить</button>
     <button id="btnDone" class="primary" hidden>✓ Завершить ход</button>
+    <button id="btnDouble" class="primary" hidden title="Предложить компьютеру удвоить ставку">×2 Удвоить</button>
     <button id="btnResign" disabled title="Признать поражение в этой партии">🏳 Сдаться</button>
   </div>
 </footer>
@@ -226,6 +227,7 @@ td:first-child,th:first-child{text-align:left}
     <label class="chk"><input type="checkbox" data-key="sound"> Звук</label>
     <label class="chk"><input type="checkbox" data-key="numbers"> Нумерация пунктов</label>
     <label class="chk"><input type="checkbox" data-key="pips"> Показывать счёт пипсов</label>
+    <label class="chk"><input type="checkbox" data-key="cube"> Кубик удвоения (в коротких нардах)</label>
     <div class="row"><button class="primary" data-close>Готово</button></div>
   </div>
 </div>
@@ -276,6 +278,8 @@ td:first-child,th:first-child{text-align:left}
       <li>Одиночную шашку соперника можно побить — она уходит на бар и должна снова войти в игру через ваш стартовый угол. Пока есть шашки на баре, другие ходить не могут.</li>
       <li>Нельзя вставать на пункт, где две и более шашки соперника.</li>
       <li>Очки: победа — 1, марс — 2, кокс (у проигравшего шашка на баре или в вашем доме) — 3.</li>
+      <li>Кубик удвоения: перед своим броском можно предложить удвоить ставку (кнопка «Удвоить»). Соперник либо отказывается и сразу проигрывает партию по текущей ставке, либо принимает — ставка удваивается, а кубик переходит к нему: следующее удвоение может предложить только он. В конце очки за партию умножаются на значение кубика.</li>
+      <li>Правило Кроуфорда: в матче до N очков, когда одному из игроков впервые остаётся одно очко до победы, в следующей партии удваивать нельзя.</li>
     </ul>
     <h3>Управление</h3>
     <ul>
@@ -290,6 +294,16 @@ td:first-child,th:first-child{text-align:left}
 </div>
 
 <!-- Конец партии -->
+<!-- Компьютер предлагает удвоение: закрыть окно без ответа нельзя -->
+<div class="overlay" id="ovCube">
+  <div class="modal">
+    <h2>Удвоение</h2>
+    <div class="big" id="cubeText"></div>
+    <div class="sub" id="cubeSub"></div>
+    <div class="row"><button id="cubeDrop">Отказаться</button><button class="primary" id="cubeTake">Принять</button></div>
+  </div>
+</div>
+
 <div class="overlay" id="ovOver">
   <div class="modal">
     <h2 id="overTitle">Победа!</h2>
@@ -310,7 +324,7 @@ const LS={
   get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},
   set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
 };
-const DEF_SETTINGS={board:'classic',checkers:'classic',dice:'classic',fontSize:'m',rollMode:'manual',confirmMove:true,sound:true,speed:'normal',hints:true,numbers:true,pips:true};
+const DEF_SETTINGS={cube:true,board:'classic',checkers:'classic',dice:'classic',fontSize:'m',rollMode:'manual',confirmMove:true,sound:true,speed:'normal',hints:true,numbers:true,pips:true};
 const settings=Object.assign({},DEF_SETTINGS,LS.get('nardy.settings',{}));
 const prefs=Object.assign({variant:'long',matchLen:'7'},LS.get('nardy.prefs',{}));
 // уровень 1–10; старые «лёгкий/средний/сложный» переводим на шкалу
@@ -1204,6 +1218,7 @@ function render(opt){
       for(let i=0;i<4;i++)h+=`<rect x="${(cx-37+i*20).toFixed(1)}" y="${(my-6).toFixed(1)}" width="12" height="12" rx="3" fill="${G.dicePose[0].side?'#3a2014':'#f6ecd4'}" stroke="#000" stroke-opacity=".4" opacity="${i<used?0.25:0.95}"/>`;
     }
   }
+  h+=cubeSVG();
   // доступные шашки
   if(humanMove){
     const srcs=new Set(G.legal.map(m=>m.from));
@@ -1239,6 +1254,9 @@ function updateUI(){
   const human=G.turn===0;
   $('btnDone').hidden=G.phase!=='confirm';
   $('btnResign').disabled=!canResign();
+  const dbl=G.on&&G.cube&&canDouble(0);
+  $('btnDouble').hidden=!dbl;
+  if(dbl)$('btnDouble').textContent=`×2 Удвоить до ${G.cube.value*2}`;
   $('btnUndo').disabled=!(human&&!G.busy&&G.hist.length&&(G.phase==='move'||G.phase==='confirm'));
   $('score').innerHTML=(G.on&&match.target?`<span style="color:#c9a979">до ${match.target} · </span>`:'')+`Вы <b>${match.me}</b> : <b>${match.ai}</b> Компьютер`;
   $('variantLabel').textContent=G.on?(V==='long'?'длинные':'короткие')+' · уровень '+G.level+' · '+(match.target?`матч до ${match.target}`:'без лимита'):'';
@@ -1304,8 +1322,11 @@ const dur=()=>SPEED[settings.speed][0],gap=()=>SPEED[settings.speed][1];
 function newGame(nextInMatch){
   G.token++;
   if(!nextInMatch||match.over)
-    match={target:+prefs.matchLen||0,me:0,ai:0,variant:prefs.variant,level:prefs.level,over:false};
+    match={target:+prefs.matchLen||0,me:0,ai:0,variant:prefs.variant,level:prefs.level,over:false,crawfordUsed:false};
   V=match.variant;G.level=match.level;
+  // кубик удвоения: в центре, ставка 1. Партия Кроуфорда — первая после того, как кому-то осталось 1 очко
+  G.cube={value:1,owner:-1};G.crawford=false;
+  if(match.target&&!match.crawfordUsed&&(match.me===match.target-1||match.ai===match.target-1)){G.crawford=true;match.crawfordUsed=true;}
   Object.assign(G,{on:true,s:newState(V),turn:0,phase:'opening',dice:[],rem:[],head:0,hl:1,forceHigh:0,
     firstTurn:[true,true],hist:[],legal:[],sel:null,targets:new Map(),last:[],turnMoves:[],busy:false,opening:null,rolling:false});
   G.dicePose=null;G.openPose=null;
@@ -1337,9 +1358,71 @@ async function openingRoll(){
 }
 function startTurn(p){
   G.turn=p;G.phase='roll';G.sel=null;G.targets=new Map();G.turnMoves=[];G.hist=[];G.dice=[];G.rem=[];G.dicePose=null;
-  if(p===1){setStatus('Ход компьютера');render();later(doRoll,450);}
-  else if(settings.rollMode==='auto'){setStatus('Ваш ход');render();later(doRoll,400);}
-  else{setStatus('Ваш ход — нажмите на левую или правую половину доски, чтобы бросить кубики');render();}
+  if(p===1){
+    setStatus('Ход компьютера');render();
+    if(canDouble(1)&&aiWantsDouble())later(aiOfferDouble,500);else later(doRoll,450);
+  }
+  else if(settings.rollMode==='auto'){
+    // если можно удвоить — даём время нажать «Удвоить» до автоматического броска
+    const dbl=canDouble(0);
+    setStatus(dbl?'Ваш ход — можно удвоить ставку':'Ваш ход');render();later(doRoll,dbl?2000:400);
+  }
+  else{setStatus('Ваш ход — нажмите на левую или правую половину доски, чтобы бросить кубики'+(canDouble(0)?', или удвойте ставку':''));render();}
+}
+
+/* ---- кубик удвоения (только короткие нарды) ---- */
+const cubeOn=()=>V==='short'&&!!settings.cube;
+function canDouble(p){
+  if(!cubeOn()||!G.on||G.crawford||G.phase!=='roll'||G.turn!==p||G.busy)return false;
+  if(G.cube.value>=64)return false;
+  return G.cube.owner===-1||G.cube.owner===p;
+}
+// шанс компьютера на победу, когда бросать предстоит игроку toMove (оценка нейросети)
+const aiWinChance=toMove=>toMove===0?evaluate(G.s,1)/100:1-evaluate(G.s,0)/100;
+// младшие уровни решают про удвоение с ошибками
+const cubeNoise=()=>(Math.random()-.5)*Math.max(0,10-G.level)*0.05;
+function aiWantsDouble(){
+  if(match.target&&match.ai+G.cube.value>=match.target)return false; // и так хватает для победы в матче
+  const c=aiWinChance(1)+cubeNoise();
+  return c>=0.68&&c<=0.95; // при подавляющем перевесе выгоднее доиграть на марс
+}
+const ptsWord=n=>{const a=n%10,b=n%100;return (a===1&&b!==11)?'очко':(a>=2&&a<=4&&(b<12||b>14))?'очка':'очков';};
+function humanDouble(){
+  audioUnlock();
+  if(!canDouble(0))return;
+  const nv=G.cube.value*2,take=aiWinChance(0)+cubeNoise()>=0.24;
+  if(take){
+    G.cube={value:nv,owner:1};sfx('click');
+    setStatus(`Компьютер принял удвоение — ставка ×${nv}. Бросайте кубики`);render();
+    if(settings.rollMode==='auto')later(doRoll,800);
+  }else{
+    G.token++;setStatus('Компьютер отказался от удвоения');gameOver(0,'drop');
+  }
+}
+function aiOfferDouble(){
+  if(!canDouble(1))return doRoll();
+  G.phase='cube';
+  const nv=G.cube.value*2;
+  $('cubeText').textContent=`Компьютер предлагает удвоить ставку до ×${nv}`;
+  $('cubeSub').textContent=`Примете — партия продолжится, очки за неё умножатся на ${nv}, и следующее удвоение сможете предложить только вы. Откажетесь — партия проиграна, компьютер получит ${G.cube.value} ${ptsWord(G.cube.value)}.`;
+  setStatus('Компьютер предлагает удвоение');render();show('ovCube');
+}
+$('btnDouble').onclick=humanDouble;
+$('cubeTake').onclick=()=>{
+  if(G.phase!=='cube')return;
+  closeAll();G.cube={value:G.cube.value*2,owner:0};G.phase='roll';sfx('click');
+  setStatus(`Вы приняли удвоение — ставка ×${G.cube.value}`);render();later(doRoll,500);
+};
+$('cubeDrop').onclick=()=>{
+  if(G.phase!=='cube')return;
+  closeAll();G.token++;gameOver(1,'drop');
+};
+function cubeSVG(){
+  if(!cubeOn()||!G.on)return '';
+  const y=G.cube.owner===-1?360:G.cube.owner===0?640:80,v=G.cube.value===1?64:G.cube.value;
+  return `<g transform="translate(460,${y})" filter="url(#sh)"><rect x="-22" y="-22" width="44" height="44" rx="7" fill="#f7efdc" stroke="#7a5a30" stroke-width="2"/>`
+    +`<text y="8" text-anchor="middle" font-family="Georgia,serif" font-weight="bold" font-size="${v>=10?20:24}" fill="#3a2410">${v}</text>`
+    +(G.crawford?`<line x1="-18" y1="18" x2="18" y2="-18" stroke="#b03020" stroke-width="3"/>`:'')+`</g>`;
 }
 // Откуда летят кубики: вы бросаете со своего края (снизу), компьютер — со своего (сверху).
 // tapX — куда нажал игрок, иначе случайная точка над выбранной половиной.
@@ -1483,20 +1566,24 @@ function resultFor(w){
 function canResign(){return G.on&&!['over','opening'].includes(G.phase);}
 function resign(){
   if(!canResign())return;
-  const {pts,kind}=resultFor(1);
-  const word=pts===1?'очко':'очка';
-  const note=pts===1?'':` (${kind.replace('!','').toLowerCase()} — вы ещё не выбросили ни одной шашки)`;
-  if(!confirm(`Сдаться? Компьютер получит ${pts} ${word}${note}.`))return;
+  const {pts:base,kind}=resultFor(1),mult=cubeOn()?G.cube.value:1,pts=base*mult;
+  const note=(base===1?'':` (${kind.replace('!','').toLowerCase()} — вы ещё не выбросили ни одной шашки)`)+(mult>1?` с учётом удвоения ×${mult}`:'');
+  if(!confirm(`Сдаться? Компьютер получит ${pts} ${ptsWord(pts)}${note}.`))return;
   G.token++;$('float').innerHTML='';G.sel=null;G.targets=new Map();
   gameOver(1,true);
 }
-function gameOver(w,resigned){
+// mode: true/'resign' — сдача, 'drop' — отказ от удвоения
+function gameOver(w,mode){
   G.phase='over';G.busy=false;
-  let {pts,kind}=resultFor(w);
-  if(resigned)kind='Сдача · '+kind;
+  let base,kind,mult=cubeOn()?G.cube.value:1;
+  if(mode==='drop'){base=G.cube.value;mult=1;kind='Отказ от удвоения';}
+  else{({pts:base,kind}=resultFor(w));if(mode)kind='Сдача · '+kind;}
+  const pts=base*mult;
+  if(mult>1)kind+=` ×${mult}`;
   const st=stats[V];st.games++;
-  if(w===0){st.wins++;st.ptsFor+=pts;match.me+=pts;if(pts===2)st.marsFor++;if(pts===3)st.koksFor++;}
-  else{st.losses++;st.ptsAgainst+=pts;match.ai+=pts;if(pts===2)st.marsAgainst++;if(pts===3)st.koksAgainst++;}
+  const mars=mode!=='drop'&&base===2,koks=mode!=='drop'&&base===3;
+  if(w===0){st.wins++;st.ptsFor+=pts;match.me+=pts;if(mars)st.marsFor++;if(koks)st.koksFor++;}
+  else{st.losses++;st.ptsAgainst+=pts;match.ai+=pts;if(mars)st.marsAgainst++;if(koks)st.koksAgainst++;}
   const matchDone=match.target>0&&(match.me>=match.target||match.ai>=match.target);
   if(matchDone){match.over=true;if(w===0)st.matchWins++;else st.matchLosses++;}
   LS.set('nardy.stats',stats);
@@ -1505,7 +1592,7 @@ function gameOver(w,resigned){
   setStatus(matchDone?(w===0?'Вы выиграли матч!':'Компьютер выиграл матч'):gameTitle);
   render();
   $('overTitle').textContent=matchDone?(w===0?'🏆 Вы выиграли матч!':'Компьютер выиграл матч'):gameTitle;
-  $('overKind').textContent=`${kind} +${pts} ${pts===1?'очко':'очка'}`;
+  $('overKind').textContent=`${kind} +${pts} ${ptsWord(pts)}`;
   $('overScore').textContent=match.target
     ?`${matchDone?'Итог матча':'Счёт матча до '+match.target} — вы ${match.me} : ${match.ai} компьютер`
     :`Счёт (без лимита) — вы ${match.me} : ${match.ai} компьютер`;
@@ -1565,11 +1652,13 @@ function openSub(id){returnTo=document.querySelector('.overlay.show')?.id||null;
 // Закрыть текущее окно: подстраница меню возвращает в меню, остальные — к доске
 function closeOverlay(){
   const cur=document.querySelector('.overlay.show');
+  if(cur&&cur.id==='ovCube')return; // на удвоение нужно ответить
   if(cur&&cur.id!=='ovMenu'&&returnTo==='ovMenu')openMenu();else closeAll();
   returnTo=null;
 }
 document.querySelectorAll('[data-close]').forEach(b=>b.onclick=closeOverlay);
 document.querySelectorAll('.overlay').forEach(o=>{
+  if(o.id==='ovCube')return;
   // нажатие мимо окна — закрыть
   o.addEventListener('click',e=>{if(e.target===o)closeOverlay();});
   // крестик в углу каждого окна
@@ -1701,7 +1790,7 @@ applyOrientation();
 V=prefs.variant;G.s=newState(V);
 buildStatic();syncControls();render();
 setStatus('Выберите вариант и начните партию');
-window.__nardy={get match(){return match},get aiWorkerState(){return aiWorkerFailed?'failed':aiWorker?'ok':'none';},aiThink,G,legalSteps,enumLeaves,aiChoose,newState,applyMove,genSingle,setV:v=>{V=v;},evaluate};
+window.__nardy={get match(){return match},startTurn,get aiWorkerState(){return aiWorkerFailed?'failed':aiWorker?'ok':'none';},aiThink,G,legalSteps,enumLeaves,aiChoose,newState,applyMove,genSingle,setV:v=>{V=v;},evaluate};
 })();
 </script>
 </body>
