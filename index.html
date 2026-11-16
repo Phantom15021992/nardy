@@ -4,6 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Нарды</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#3a2414">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Нарды">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <style>
 *{box-sizing:border-box}
 [hidden]{display:none!important}
@@ -196,6 +204,7 @@ td:first-child,th:first-child{text-align:left}
       <button id="mContinue" hidden>Продолжить партию</button>
       <button id="mSettings">Настройки</button>
       <button id="mStyle">Оформление</button>
+      <button id="mInstall">📲 На главный экран</button>
       <button id="mStats">Статистика</button>
       <button id="mRules">Правила и управление</button>
     </div>
@@ -250,6 +259,20 @@ td:first-child,th:first-child{text-align:left}
     <div class="opt"><div class="label">Шашки</div><div class="styles" id="checkerStyles"></div></div>
     <div class="opt"><div class="label">Игральные кости</div><div class="styles" id="diceStyles"></div></div>
     <div class="row"><button class="primary" data-close>Готово</button></div>
+  </div>
+</div>
+
+<!-- Как сохранить игру на главный экран -->
+<div class="overlay" id="ovInstall">
+  <div class="modal">
+    <h2>На главный экран</h2>
+    <p>Игру можно сохранить на телефон как обычное приложение: со своей иконкой, на весь экран и <b>без интернета</b>. Ничего не устанавливается из магазина — удаляется как обычный ярлык.</p>
+    <h3>iPhone и iPad (Safari)</h3>
+    <ul><li>Нажмите кнопку «Поделиться» (квадрат со стрелкой вверх).</li><li>Выберите «На экран „Домой“» и нажмите «Добавить».</li></ul>
+    <h3>Android (Chrome)</h3>
+    <ul><li>Откройте меню браузера ⋮ в правом верхнем углу.</li><li>Выберите «Установить приложение» или «Добавить на главный экран».</li></ul>
+    <p id="installNote" style="color:#6b4a2a;font-size:14px"></p>
+    <div class="row"><button class="primary" data-close>Понятно</button></div>
   </div>
 </div>
 
@@ -1672,6 +1695,21 @@ $('mContinue').onclick=()=>{if(G.phase==='over'&&!match.over){audioUnlock();newG
 $('mSettings').onclick=()=>openSub('ovSettings');
 $('mStats').onclick=()=>openSub('ovStats');
 $('mStyle').onclick=()=>openSub('ovStyle');
+
+/* ---- Работа без интернета и «На главный экран» ---- */
+// Служебный файл sw.js сохраняет игру на устройстве. Работает только при открытии с сайта (http/https).
+if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol))
+  addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+let installPrompt=null;
+const isStandalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+addEventListener('beforeinstallprompt',e=>{e.preventDefault();installPrompt=e;}); // Android Chrome: своё окно установки
+addEventListener('appinstalled',()=>{installPrompt=null;$('mInstall').hidden=true;});
+$('mInstall').hidden=isStandalone();
+$('mInstall').onclick=async()=>{
+  if(installPrompt){installPrompt.prompt();try{await installPrompt.userChoice;}catch(e){}installPrompt=null;return;}
+  $('installNote').textContent=/^https?:$/.test(location.protocol)?'':'Сейчас игра открыта как файл с диска — так сохранить её нельзя. Откройте её по ссылке на сайт.';
+  openSub('ovInstall');
+};
 $('mRules').onclick=()=>openSub('ovRules');
 $('overNew').onclick=()=>{audioUnlock();newGame(true);};
 $('overMenu').onclick=()=>openMenu();
